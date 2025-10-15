@@ -7,161 +7,207 @@
   <link rel="stylesheet" href="jobdesc.css">
 </head>
 <body>
-  <div class="container">
+  <div class="container" id="jobContainer">
     <header>
-      <button class="back-btn" onclick="window.location.href='index.html'">←</button>
-      <span class="time">9:41</span>
+      <button class="back-btn" onclick="window.location.href='/dashboard'">←</button>
+      <span class="time" id="currentTime"></span>
       <div class="menu-btn">⋮</div>
     </header>
     <main>
-      <div class="job-card">
-        <div class="job-header">
-          <img src="res/Google__G__logo.svg.webp" alt="Company Logo" class="company-logo">
-
-          <!--Google Job-->
-          <div class="job-info">
-            <h2>UX Writing Intern (OJT)</h2>
-            <p>UB • Baguio, PH • 1 day ago</p>
-          </div>
-        </div>
-        <div class="job-section">
-          <h3>Job Type</h3>
-          <p>On-the-Job Training</p>
-        </div>
-        <div class="job-section">
-          <h3>Description</h3>
-          <p>We’re looking for a UX Writing Intern who's passionate about crafting clear, user-friendly content that enhances digital experiences. This internship offers hands-on exposure to UX writing in a collaborative environment, where your words will help shape how users interact with our products.</p>
-        </div>
-        <div class="job-section">
-          <h3>Requirements</h3>
-          <ul>
-            <li>Strong written communication skills</li>
-            <li>Familiarity with UX principles and user-centered design</li>
-            <li>Attention to detail and a love for clarity</li>
-            <li>Currently enrolled in a relevant course (e.g., Communication, Design, IT)</li>
-          </ul>
-        </div>
-        <div class="job-section">
-          <h3>Location</h3>
-          <p>BSW-3X5 University of Baguio, Gen. Luna Rd, Baguio, 2600</p>
-          <div class="map-placeholder">
-            <!-- Replace with actual map embed if needed -->
-            <img src="res/map-placeholder.jpg" alt="Map" class="map-image">
-          </div>
-        </div>
-        <div class="job-section">
-          <h3>Informations</h3>
-          <div class="info-item">
-            <h4>Position</h4>
-            <p>UX Writing Intern (OJT)</p>
-          </div>
-          <div class="info-item">
-            <h4>Qualification</h4>
-            <p>Currently enrolled in a Bachelor's Degree program</p>
-          </div>
-          <div class="info-item">
-            <h4>Experience</h4>
-            <p>No experience required</p>
-          </div>
-          <div class="info-item">
-            <h4>Job Type</h4>
-            <p>On-the-Job Training</p>
-          </div>
-          <div class="info-item">
-            <h4>Specialization</h4>
-            <p>Design</p>
-          </div>
-        </div>
-        <div class="job-section">
-          <h3>Facilities and Others</h3>
-          <ul>
-            <li>Medical</li>
-            <li>Dental</li>
-            <li>Technical Certification</li>
-            <li>Meal Allowance</li>
-            <li>Transport Allowance</li>
-            <li>Regular Hours</li>
-            <li>Mondays-Fridays</li>
-          </ul>
-        </div>
+      <div class="loading" id="loading">Loading job details...</div>
+      <div class="job-card" id="jobCard" style="display: none;">
+        <!-- Dynamic content will be populated here -->
       </div>
-
-        <!-- Facebook Job
-    <div class="job-header">
-          <img src="res/Facebook_Logo_2023.png" alt="Facebook Logo" class="company-logo">
-          <div class="job-info">
-            <h2>Finance Internship (OJT)</h2>
-            <p>Facebook • Manila, PH • 2 days ago</p>
-          </div>
-        </div>
-        <div class="job-section">
-          <h3>Job Type</h3>
-          <p>On-the-Job Training</p>
-        </div>
-        <div class="job-section">
-          <h3>Description</h3>
-          <p>Join Facebook as a Finance Intern and gain hands-on experience in financial analysis, budgeting, and forecasting. This internship offers a chance to work with a dynamic team and contribute to strategic financial decisions.</p>
-        </div>
-        <div class="job-section">
-          <h3>Requirements</h3>
-          <ul>
-            <li>Basic knowledge of financial principles</li>
-            <li>Proficiency in Excel or similar tools</li>
-            <li>Strong analytical skills</li>
-            <li>Currently enrolled in Finance, Economics, or related field</li>
-          </ul>
-        </div>
-        <div class="job-section">
-          <h3>Location</h3>
-          <p>Facebook Office, Bonifacio Global City, Taguig, 1634</p>
-          <div class="map-placeholder">
-            <img src="res/map-placeholder.jpg" alt="Map" class="map-image">
-          </div>
-        </div>
-        <div class="job-section">
-          <h3>Informations</h3>
-          <div class="info-item">
-            <h4>Position</h4>
-            <p>Finance Internship (OJT)</p>
-          </div>
-          <div class="info-item">
-            <h4>Qualification</h4>
-            <p>Currently enrolled in a Bachelor's Degree program</p>
-          </div>
-          <div class="info-item">
-            <h4>Experience</h4>
-            <p>No experience required</p>
-          </div>
-          <div class="info-item">
-            <h4>Job Type</h4>
-            <p>On-the-Job Training</p>
-          </div>
-          <div class="info-item">
-            <h4>Specialization</h4>
-            <p>Finance</p>
-          </div>
-        </div>
-        <div class="job-section">
-          <h3>Facilities and Others</h3>
-          <ul>
-            <li>Medical</li>
-            <li>Dental</li>
-            <li>Free Snacks</li>
-            <li>Transportation</li>
-            <li>Flexible Hours</li>
-            <li>Mondays-Fridays</li>
-          </ul>
-        </div>
-        <div class="job-section">
-          <h3>Comments</h3>
-          <textarea class="comment-box" placeholder="Add your comment..."></textarea>
-          <button class="submit-comment">Submit</button>
-        </div>
-      </div> -->
     </main>
     <footer>
-      <button class="save-btn">SAVE</button>
+      <button class="save-btn" id="saveBtn">SAVE</button>
     </footer>
   </div>
+
+  <script>
+    // Get job ID from URL
+    const urlParams = new URLSearchParams(window.location.pathname.split('/').pop() ? 
+      window.location.pathname.split('/').slice(-1)[0] : new URLSearchParams(window.location.search));
+    const jobId = urlParams.get('id') || window.location.pathname.split('/').pop();
+
+    async function loadJobDetails() {
+      try {
+        const response = await fetch(`/api/jobs/${jobId}`, { credentials: 'include' });
+        const job = await response.json();
+        
+        if (!response.ok) {
+          alert(job.error || 'Job not found');
+          window.location.href = '/dashboard';
+          return;
+        }
+
+        // Check favorite status
+        const favoriteResponse = await fetch(`/api/jobs/${jobId}/favorite`, { credentials: 'include' });
+        const favoriteData = await favoriteResponse.json();
+        
+        renderJobDetails(job, favoriteData.favorited);
+        setupEventListeners(job);
+      } catch (error) {
+        console.error('Error loading job:', error);
+        window.location.href = '/dashboard';
+      }
+    }
+
+    function renderJobDetails(job, isFavorited) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('jobCard').style.display = 'block';
+
+      const facilitiesList = job.facilities ? job.facilities.map(f => `<li>${f}</li>`).join('') : '<li>No facilities listed</li>';
+      
+      document.getElementById('jobCard').innerHTML = `
+        <div class="job-header">
+          <img src="${job.logo_url || 'res/default-logo.png'}" alt="${job.company_name} Logo" class="company-logo" onerror="this.src='res/default-logo.png'">
+          <div class="job-info">
+            <h2>${job.title}</h2>
+            <p>${job.company_name} • ${job.location} • ${new Date(job.created_at).toLocaleDateString()}</p>
+          </div>
+        </div>
+        <div class="job-section">
+          <h3>Job Type</h3>
+          <p>On-the-Job Training</p>
+        </div>
+        <div class="job-section">
+          <h3>Description</h3>
+          <p>${job.description || 'Job description not available.'}</p>
+        </div>
+        <div class="job-section">
+          <h3>Requirements</h3>
+          <ul>${job.requirements ? job.requirements.split('\n').map(req => `<li>${req.trim()}</li>`).join('') : '<li>Requirements not specified</li>'}</ul>
+        </div>
+        <div class="job-section">
+          <h3>Location</h3>
+          <p>${job.location}</p>
+          <div class="map-placeholder">
+            <div style="text-align: center; padding: 20px; color: #666;">🗺️ Map coming soon</div>
+          </div>
+        </div>
+        <div class="job-section">
+          <h3>Information</h3>
+          <div class="info-item">
+            <h4>Position</h4>
+            <p>${job.title}</p>
+          </div>
+          <div class="info-item">
+            <h4>Company</h4>
+            <p>${job.company_name}</p>
+          </div>
+          <div class="info-item">
+            <h4>Job Type</h4>
+            <p>On-the-Job Training</p>
+          </div>
+          <div class="info-item">
+            <h4>Specialization</h4>
+            <p>${job.category || 'General'}</p>
+          </div>
+          ${job.applied ? `
+          <div class="info-item">
+            <h4>Status</h4>
+            <p style="color: ${job.applicationStatus === 'accepted' ? '#27ae60' : job.applicationStatus === 'rejected' ? '#e74c3c' : '#f39c12'}">
+              ${job.applicationStatus?.toUpperCase() || 'PENDING'}
+            </p>
+          </div>` : ''}
+        </div>
+        <div class="job-section">
+          <h3>Facilities and Others</h3>
+          <ul>${facilitiesList}</ul>
+        </div>
+        ${job.applied ? `
+        <div class="job-section">
+          <h3>Application Status</h3>
+          <p>You have ${job.applicationStatus === 'accepted' ? 'been accepted for' : job.applicationStatus === 'rejected' ? 'been rejected from' : 'applied to'} this position.</p>
+        </div>` : ''}
+      `;
+
+      // Update save button
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.textContent = isFavorited ? 'SAVED' : 'SAVE';
+      saveBtn.style.background = isFavorited ? '#27ae60' : '#4a90e2';
+    }
+
+    function setupEventListeners(job) {
+      // Update time
+      function updateTime() {
+        document.getElementById('currentTime').textContent = new Date().toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit' 
+        });
+      }
+      updateTime();
+      setInterval(updateTime, 1000);
+
+      // Save/Favorite button
+      document.getElementById('saveBtn').addEventListener('click', async () => {
+        try {
+          const response = await fetch(`/api/jobs/${jobId}/favorite`, {
+            method: 'POST',
+            credentials: 'include'
+          });
+          const data = await response.json();
+          
+          if (data.success) {
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.textContent = data.favorited ? 'SAVED' : 'SAVE';
+            saveBtn.style.background = data.favorited ? '#27ae60' : '#4a90e2';
+          }
+        } catch (error) {
+          console.error('Error toggling favorite:', error);
+        }
+      });
+
+      // Apply button if not applied
+      if (!job.applied) {
+        const applyBtn = document.createElement('button');
+        applyBtn.textContent = 'APPLY NOW';
+        applyBtn.className = 'apply-btn';
+        applyBtn.style.cssText = `
+          background: #27ae60; color: white; border: none; padding: 12px; 
+          border-radius: 10px; width: 100%; margin-top: 10px; font-size: 16px; cursor: pointer;
+        `;
+        applyBtn.onclick = () => applyForJob(job.id);
+        document.querySelector('.job-card').appendChild(applyBtn);
+      }
+    }
+
+    async function applyForJob(jobId) {
+      try {
+        const response = await fetch('/api/applications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ jobId })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          alert('Application submitted successfully!');
+          window.location.reload();
+        } else {
+          alert('Error: ' + (result.error || 'Failed to apply'));
+        }
+      } catch (error) {
+        alert('Network error. Please try again.');
+      }
+    }
+
+    // Check authentication first
+    window.addEventListener('load', async () => {
+      try {
+        const authResponse = await fetch('/api/me', { credentials: 'include' });
+        const authData = await authResponse.json();
+        if (!authData.loggedIn) {
+          window.location.href = '/login.html';
+        } else {
+          loadJobDetails();
+        }
+      } catch (error) {
+        window.location.href = '/login.html';
+      }
+    });
+  </script>
 </body>
 </html>
