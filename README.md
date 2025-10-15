@@ -34,7 +34,7 @@ Every year, countless Filipinos—students and fresh graduates—face a tiring s
 🛠️ **Technology Stack**  
 **Frontend:** HTML, CSS, JS
 **Backend:** Node.js 
-**Database:** N/A 
+**Database:** MySQL 
 **Version Control:** Git & GitHub  
 
 ## 🚨 **The Problem**  
