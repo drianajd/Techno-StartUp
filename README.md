@@ -20,7 +20,6 @@ Every year, countless Filipinos—students and fresh graduates—face a tiring s
 | Contillo, Daniel Roi | [@sora598](https://github.com/sora598) |
 | Damocles, Jhezreen Adriana | [@drianajd](https://github.com/drianajd) |
 | Javier, Charles Louis | [@JayJay3937](https://github.com/JayJay3937) |
-| Juan, Airon | [@218juanAiron](https://github.com/218juanAiron) |
 
 
 📅 **Submission Details**  
@@ -151,4 +150,5 @@ This project is created for educational purposes as part of our [Course Name] Mi
 
 **Grantify: Opportunities that Amplify**  
 *Connecting Filipino talent with career opportunities that matter.*
+
 
