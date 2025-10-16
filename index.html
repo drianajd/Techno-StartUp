@@ -7,100 +7,127 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="dashboard">
-    <div class="header-bg">
-      <header>
-        <div class="user-info">
-          <h1>Hello Ciela Bickle</h1>
-          <div class="profile-pic">
-            <img src="res/Monkey-Selfie.webp" alt="Profile picture">
+  <div class="header-bg">
+    <div class="user-info">
+      <div class="user-info-left">
+        <div class="profile-pic">
+          <img src="res/Monkey-Selfie.webp" alt="Profile picture">
         </div>
-          <span class="notification">✉︎</span>
+        <div>
+          <h1>Hello Ciela!</h1>
+          <p>Find your dream OJT</p>
         </div>
-        <div class="search-bar">
-          <input type="text" placeholder="Search job, company, etc">
-          <select>
-            <option value="">All</option>
-          </select>
-        </div>
-      </header>
+      </div>
+      <span class="notification">✉︎</span>
     </div>
-    <section class="popular-jobs">
-      <h2>Most Popular</h2>
-      <div class="job-card highlighted">
-        <img src="res/bird.png" alt="Company Logo">
-        <div>
-          <h3>OJT Trainee - Project Management</h3>
-          <p>Energy - Baguio, PH (For Students)</p>
-          <span>Training</span> <span>Remote</span> <span>OJT</span>
+    <div class="search-bar">
+      <input type="text" placeholder="Search job, company, etc">
+      <select>
+        <option value="">All</option>
+        <option value="remote">Remote</option>
+        <option value="onsite">On-site</option>
+      </select>
+    </div>
+  </div>
 
+  <div class="section-header">
+    <h2>Most Popular</h2>
+    <a href="#">See all</a>
+  </div>
+
+  <section class="popular-jobs">
+    <div class="jobs-scroll">
+      <div class="job-card highlighted">
+        <div class="job-card-header">
+          <img src="res/bird.png" alt="Company Logo">
+          <div class="job-card-info">
+            <h3>OJT Trainee - Project Management</h3>
+            <p>Energy • Baguio, PH</p>
+          </div>
+        </div>
+        <div class="job-tags">
+          <span class="job-tag">Training</span>
+          <span class="job-tag">Remote</span>
+          <span class="job-tag">OJT</span>
         </div>
       </div>
+
       <div class="job-card">
-        <img src="res/olx.png" alt="Company Logo">
-        <div>
-          <h3>OJT Trainee - Graphic</h3>
-          <p>Tech-Synergy - Baguio</p>
-          <span>Training</span> <span>Remote</span>
-          <p class="salary"></p>
+        <div class="job-card-header">
+          <img src="res/olx.png" alt="Company Logo">
+          <div class="job-card-info">
+            <h3>OJT Trainee - Graphic Design</h3>
+            <p>Tech-Synergy • Baguio, PH</p>
+          </div>
+        </div>
+        <div class="job-tags">
+          <span class="job-tag">Training</span>
+          <span class="job-tag">Remote</span>
         </div>
       </div>
-    </section>
-    <section class="job-categories">
-      <h2>All OJT</h2>
-      <div class="category-row">
-        <button>UI Designer</button>
-        <button>FE Dev</button>
-        <button>APP DEV</button>
-        <button>Graf</button>
-      </div>
-    </section>
-    <section class="job-list">
-      <a href="jobdesc.html" class="job-link">
-      <div class="job-item">
+    </div>
+  </section>
+
+  <div class="section-header">
+    <h2>All OJT</h2>
+    <a href="#">View more</a>
+  </div>
+
+  <section class="job-categories">
+    <div class="category-scroll">
+      <button class="category-btn active">UI Designer</button>
+      <button class="category-btn">FE Dev</button>
+      <button class="category-btn">APP DEV</button>
+      <button class="category-btn">Graphic</button>
+      <button class="category-btn">Backend</button>
+      <button class="category-btn">Marketing</button>
+    </div>
+  </section>
+
+  <section class="job-list">
+    <a href="jobdesc.html" class="job-item">
       <img src="res/Google__G__logo.svg.webp" alt="Google Logo">
       <div>
         <h3>FE Developer (OJT)</h3>
-        <p>Google - Manila, PH</p>
-        <p>Allowance Provided</p>
+        <p>Google • Manila, PH</p>
+        <p class="allowance">Allowance Provided</p>
       </div>
+    </a>
+
+    <a href="jobdesc.html?job=finance" class="job-item">
+      <img src="res/Facebook_Logo_2023.png" alt="Facebook Logo">
+      <div>
+        <h3>Finance Intern (OJT)</h3>
+        <p>Facebook • Manila, PH</p>
+        <p class="allowance">Allowance Provided</p>
       </div>
-      </a>
-    </section>
-    
-      <div class="job-item">
-      <a href="jobdesc.html?job=finance" class="job-link">
-        <img src="res/Facebook_Logo_2023.png" alt="Facebook Logo">
-        <div>
-          <h3>Finance Intern (OJT)</h3>
-          <p>Facebook - Manila, PH</p>
-          <p>Allowance Provided</p>
-        </div>
+    </a>
+
+    <div class="job-item">
+      <img src="res/graphic.png" alt="Graphic Logo">
+      <div>
+        <h3>Graphic Designer (OJT)</h3>
+        <p>SLU • Baguio, PH</p>
+        <p class="allowance">Allowance Provided</p>
       </div>
-      <div class="job-item">
-        <img src="res/graphic.png" alt="Graphic Logo">
-        <div>
-          <h3>Graphic Designer (OJT)</h3>
-          <p>SLU - Baguio, PH</p>
-          <p>Allowance Provided</p>
-        </div>
+    </div>
+
+    <div class="job-item">
+      <img src="res/ux.png" alt="UX Writing Logo">
+      <div>
+        <h3>UX Writing Intern (OJT)</h3>
+        <p>UB • Baguio, PH</p>
+        <p class="allowance">Allowance Provided</p>
       </div>
-      <div class="job-item">
-        <img src="res/ux.png" alt="UX Writing Logo">
-        <div>
-          <h3>UX Writing Intern (OJT)</h3>
-          <p>UB - Baguio, PH</p>
-          <p>Allowance Provided</p>
-        </div>
-      </div>
-    </section>
-  </div>
-      <footer>
-      <a href="index.html" class="nav-icon home">🏠</a>
-      <a href="world.html" class="nav-icon">🌐</a>
-      <a href="#add" class="nav-icon add">+</a>
-      <a href="message.html" class="nav-icon">💬</a>
-      <a href="#guide" class="nav-icon">⛉</a>
-    </footer>
+    </div>
+  </section>
+
+  <footer>
+    <a href="index.html" class="nav-icon active">🏠</a>
+    <a href="world.html" class="nav-icon">🌐</a>
+    <a href="#add" class="nav-icon add">+</a>
+    <a href="message.html" class="nav-icon">💬</a>
+    <a href="#guide" class="nav-icon">⛉</a>
+  </footer>
 </body>
 </html>
