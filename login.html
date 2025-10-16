@@ -10,17 +10,163 @@
   <div class="container">
     <h1>Welcome Back</h1>
     <p>"Start your journey today. Discover internships that match your skills and goals."</p>
-    <form>
-      <input type="email" placeholder="Email" value="louisyleighroi@email.com">
-      <input type="password" placeholder="Password" value="••••••••">
-      <div>
-        <span class="remember-me">Remember me</span>
-        <a href="#" class="forgot-password">Forgot Password?</a>
+    
+    <!-- Login Form -->
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Email" required>
+      <input type="password" id="password" placeholder="Password" required>
+      <div class="options">
+        <label class="remember-me">
+          <input type="checkbox" id="remember"> Remember me
+        </label>
+        <a href="#" class="forgot-password" id="forgotPassword">Forgot Password?</a>
       </div>
       <button type="submit" class="login-btn">LOGIN</button>
-      <button type="button" class="google-btn">SIGN IN WITH GOOGLE</button>
-      <p>You don't have an account yet? <a href="#" class="signup">Sign up</a></p>
+      <button type="button" class="google-btn" id="googleBtn" disabled>SIGN IN WITH GOOGLE</button>
+      <p id="loginError" class="error-message" style="display: none;"></p>
+    </form>
+
+    <!-- Register Link -->
+    <p class="signup-text">You don't have an account yet? <a href="#" id="showRegister">Sign up</a></p>
+
+    <!-- Register Form (hidden by default) -->
+    <form id="registerForm" style="display: none;">
+      <input type="text" id="regUsername" placeholder="Username" required>
+      <input type="email" id="regEmail" placeholder="Email" required>
+      <input type="password" id="regPassword" placeholder="Password" required>
+      <input type="password" id="regConfirmPassword" placeholder="Confirm Password" required>
+      <button type="submit" class="login-btn">SIGN UP</button>
+      <p id="registerError" class="error-message" style="display: none;"></p>
     </form>
   </div>
+
+  <script>
+    // Show error message
+    function showError(elementId, message) {
+      const errorEl = document.getElementById(elementId);
+      errorEl.textContent = message;
+      errorEl.style.display = 'block';
+      setTimeout(() => { errorEl.style.display = 'none'; }, 5000);
+    }
+
+    // Hide forms and show loading
+    function setLoading(formId, loading) {
+      const form = document.getElementById(formId);
+      const btn = form.querySelector('button[type="submit"]');
+      btn.disabled = loading;
+      btn.textContent = loading ? 'Loading...' : (formId === 'loginForm' ? 'LOGIN' : 'SIGN UP');
+    }
+
+    // Login handler
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setLoading('loginForm', true);
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const remember = document.getElementById('remember').checked;
+
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ username: email, password }) // Using email as username
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          // Set cookie expiration based on remember me
+          document.cookie = `rememberMe=${remember ? 'true' : 'false'}; path=/; max-age=${remember ? 86400 * 30 : 86400}`;
+          window.location.href = '/dashboard.html'; // Redirect to dashboard
+        } else {
+          showError('loginError', data.error || 'Login failed');
+        }
+      } catch (err) {
+        showError('loginError', 'Network error. Please try again.');
+      } finally {
+        setLoading('loginForm', false);
+      }
+    });
+
+    // Register handler
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setLoading('registerForm', true);
+
+      const username = document.getElementById('regUsername').value;
+      const email = document.getElementById('regEmail').value;
+      const password = document.getElementById('regPassword').value;
+      const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+      if (password !== confirmPassword) {
+        showError('registerError', 'Passwords do not match');
+        setLoading('registerForm', false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ username, email, password })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          alert('Registration successful! Please login.');
+          document.getElementById('showRegister').click(); // Switch back to login
+        } else {
+          showError('registerError', data.error || 'Registration failed');
+        }
+      } catch (err) {
+        showError('registerError', 'Network error. Please try again.');
+      } finally {
+        setLoading('registerForm', false);
+      }
+    });
+
+    // Toggle between login and register
+    document.getElementById('showRegister').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('registerForm').style.display = 'block';
+      document.querySelector('.signup-text').style.display = 'none';
+    });
+
+    // Add back to login link in register form
+    const registerForm = document.getElementById('registerForm');
+    registerForm.insertAdjacentHTML('beforeend', 
+      '<p class="signup-text" style="margin-top: 15px;">Already have an account? <a href="#" id="showLogin">Login</a></p>'
+    );
+    document.getElementById('showLogin').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('registerForm').style.display = 'none';
+      document.getElementById('loginForm').style.display = 'block';
+      document.querySelectorAll('.signup-text').forEach(el => el.style.display = 'block');
+    });
+
+    // Check if user is already logged in
+    window.addEventListener('load', async () => {
+      try {
+        const response = await fetch('/api/me', { credentials: 'include' });
+        const data = await response.json();
+        if (data.loggedIn) {
+          window.location.href = '/dashboard.html';
+        }
+      } catch (err) {
+        console.log('Not logged in');
+      }
+    });
+
+    // Forgot password (placeholder)
+    document.getElementById('forgotPassword').addEventListener('click', (e) => {
+      e.preventDefault();
+      alert('Password reset functionality coming soon!');
+    });
+  </script>
 </body>
 </html>
