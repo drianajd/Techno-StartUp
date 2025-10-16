@@ -13,7 +13,7 @@
     
     <!-- Login Form -->
     <form id="loginForm">
-      <input type="email" id="email" placeholder="Email" required>
+      <input type="email" id="email" placeholder="Email or Username" required>
       <input type="password" id="password" placeholder="Password" required>
       <div class="options">
         <label class="remember-me">
@@ -41,7 +41,7 @@
   </div>
 
   <script>
-    // Show error message
+    // Utility functions
     function showError(elementId, message) {
       const errorEl = document.getElementById(elementId);
       errorEl.textContent = message;
@@ -49,7 +49,6 @@
       setTimeout(() => { errorEl.style.display = 'none'; }, 5000);
     }
 
-    // Hide forms and show loading
     function setLoading(formId, loading) {
       const form = document.getElementById(formId);
       const btn = form.querySelector('button[type="submit"]');
@@ -62,28 +61,38 @@
       e.preventDefault();
       setLoading('loginForm', true);
       
-      const email = document.getElementById('email').value;
+      const loginField = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const remember = document.getElementById('remember').checked;
+
+      if (!loginField || !password) {
+        showError('loginError', 'Please fill in all fields');
+        setLoading('loginForm', false);
+        return;
+      }
 
       try {
         const response = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ username: email, password }) // Using email as username
+          body: JSON.stringify({ username: loginField, password })
         });
 
         const data = await response.json();
         
         if (response.ok && data.success) {
-          // Set cookie expiration based on remember me
-          document.cookie = `rememberMe=${remember ? 'true' : 'false'}; path=/; max-age=${remember ? 86400 * 30 : 86400}`;
-          window.location.href = '/dashboard.html'; // Redirect to dashboard
+          // Handle remember me by extending session cookie
+          const maxAge = remember ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+          document.cookie = `rememberMe=true; path=/; max-age=${Math.floor(maxAge/1000)}`;
+          
+          // Redirect to index
+          window.location.href = '/index.html';
         } else {
           showError('loginError', data.error || 'Login failed');
         }
       } catch (err) {
+        console.error('Login error:', err);
         showError('loginError', 'Network error. Please try again.');
       } finally {
         setLoading('loginForm', false);
@@ -95,13 +104,25 @@
       e.preventDefault();
       setLoading('registerForm', true);
 
-      const username = document.getElementById('regUsername').value;
-      const email = document.getElementById('regEmail').value;
+      const username = document.getElementById('regUsername').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
       const password = document.getElementById('regPassword').value;
       const confirmPassword = document.getElementById('regConfirmPassword').value;
 
+      if (!username || !email || !password || !confirmPassword) {
+        showError('registerError', 'Please fill in all fields');
+        setLoading('registerForm', false);
+        return;
+      }
+
       if (password !== confirmPassword) {
         showError('registerError', 'Passwords do not match');
+        setLoading('registerForm', false);
+        return;
+      }
+
+      if (password.length < 6) {
+        showError('registerError', 'Password must be at least 6 characters');
         setLoading('registerForm', false);
         return;
       }
@@ -117,12 +138,16 @@
         const data = await response.json();
         
         if (response.ok && data.success) {
-          alert('Registration successful! Please login.');
-          document.getElementById('showRegister').click(); // Switch back to login
+          alert('Registration successful! You can now login with your credentials.');
+          // Switch back to login form
+          document.getElementById('showRegister').click();
+          // Clear register form
+          document.getElementById('registerForm').reset();
         } else {
           showError('registerError', data.error || 'Registration failed');
         }
       } catch (err) {
+        console.error('Registration error:', err);
         showError('registerError', 'Network error. Please try again.');
       } finally {
         setLoading('registerForm', false);
@@ -139,30 +164,38 @@
 
     // Add back to login link in register form
     const registerForm = document.getElementById('registerForm');
-    registerForm.insertAdjacentHTML('beforeend', 
-      '<p class="signup-text" style="margin-top: 15px;">Already have an account? <a href="#" id="showLogin">Login</a></p>'
-    );
+    const existingBackLink = document.getElementById('showLogin');
+    if (!existingBackLink) {
+      registerForm.insertAdjacentHTML('beforeend', 
+        '<p class="signup-text" style="margin-top: 15px;">Already have an account? <a href="#" id="showLogin">Login</a></p>'
+      );
+    }
+    
     document.getElementById('showLogin').addEventListener('click', (e) => {
       e.preventDefault();
       document.getElementById('registerForm').style.display = 'none';
       document.getElementById('loginForm').style.display = 'block';
       document.querySelectorAll('.signup-text').forEach(el => el.style.display = 'block');
+      document.getElementById('loginForm').reset();
+      document.getElementById('registerForm').reset();
     });
 
-    // Check if user is already logged in
+    // Check if user is already logged in on page load
     window.addEventListener('load', async () => {
       try {
-        const response = await fetch('/api/me', { credentials: 'include' });
+        const response = await fetch('/api/me', { 
+          credentials: 'include' 
+        });
         const data = await response.json();
         if (data.loggedIn) {
-          window.location.href = '/dashboard.html';
+          window.location.href = '/index.html';
         }
       } catch (err) {
-        console.log('Not logged in');
+        console.log('Not logged in or session check failed');
       }
     });
 
-    // Forgot password (placeholder)
+    // Forgot password placeholder
     document.getElementById('forgotPassword').addEventListener('click', (e) => {
       e.preventDefault();
       alert('Password reset functionality coming soon!');

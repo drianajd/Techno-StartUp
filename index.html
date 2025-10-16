@@ -13,12 +13,15 @@
         <div class="profile-pic">
           <img src="res/Monkey-Selfie.webp" alt="Profile picture">
         </div>
-        <div>
-          <h1>Hello Ciela!</h1>
+        <div id="userGreeting">
+          <h1>Loading...</h1>
           <p>Find your dream OJT</p>
         </div>
       </div>
-      <span class="notification">✉︎</span>
+      <div class="user-actions">
+        <span class="notification">✉︎</span>
+        <button id="logoutBtn" class="logout-btn">Logout</button>
+      </div>
     </div>
     <div class="search-bar">
       <input type="text" placeholder="Search job, company, etc">
@@ -129,5 +132,58 @@
     <a href="message.html" class="nav-icon">💬</a>
     <a href="#guide" class="nav-icon">⛉</a>
   </footer>
+
+  <script>
+    // Check authentication on page load
+    async function checkAuth() {
+      try {
+        const response = await fetch('/api/me', {
+          method: 'GET',
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (!data.loggedIn) {
+          // Redirect to login if not authenticated
+          window.location.href = '/';
+          return false;
+        }
+        
+        // Update UI with user data
+        const userGreeting = document.getElementById('userGreeting');
+        userGreeting.innerHTML = `
+          <h1>Hello ${data.user.username || data.user.email}!</h1>
+          <p>Find your dream OJT</p>
+        `;
+        
+        return true;
+      } catch (error) {
+        console.error('Authentication check failed:', error);
+        window.location.href = '/';
+        return false;
+      }
+    }
+
+    // Logout functionality
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      try {
+        const response = await fetch('/api/logout', {
+          method: 'POST',
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          window.location.href = '/';
+        }
+      } catch (error) {
+        console.error('Logout failed:', error);
+        window.location.href = '/';
+      }
+    });
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', checkAuth);
+  </script>
 </body>
 </html>
