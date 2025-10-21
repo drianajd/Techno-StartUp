@@ -122,7 +122,7 @@ function initializeServer() {
       }
 
       const [existingRows] = await pool.query(
-        "SELECT id FROM users WHERE username = ? OR email = ?", 
+        "SELECT id FROM credentials WHERE username = ? OR email = ?", 
         [username, email]
       );
       
@@ -133,7 +133,7 @@ function initializeServer() {
 
       const hashedPassword = await bcrypt.hash(password, 10);
       const [result] = await pool.query(
-        "INSERT INTO users (username, email, password, created_at) VALUES (?, ?, ?, NOW())", 
+        "INSERT INTO credentials (username, email, password, created_at) VALUES (?, ?, ?, NOW())", 
         [username, email, hashedPassword]
       );
       
@@ -158,7 +158,7 @@ function initializeServer() {
       }
 
       const [rows] = await pool.query(
-        "SELECT id, username, email, password FROM users WHERE username = ? OR email = ?", 
+        "SELECT id, username, email, password FROM credentials WHERE username = ? OR email = ?", 
         [username, username]
       );
       
@@ -217,7 +217,7 @@ function initializeServer() {
       }
       
       const [rows] = await pool.query(
-        "SELECT id, username, email, created_at FROM users WHERE id = ?", 
+        "SELECT id, username, email, created_at FROM credentials WHERE id = ?", 
         [req.session.userId]
       );
       
