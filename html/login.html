@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Page</title>
+  <link rel="stylesheet" href="../css/login.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Welcome Back</h1>
+    <p>"Start your journey today. Discover internships that match your skills and goals."</p>
+    
+    <!-- Login Form -->
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Email or Username" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <div class="options">
+        <label class="remember-me">
+          <input type="checkbox" id="remember" /> Remember me
+        </label>
+        <a href="#" class="forgot-password" id="forgotPassword">Forgot Password?</a>
+      </div>
+      <button type="submit" class="login-btn">LOGIN</button>
+      <button type="button" class="google-btn" id="googleBtn" disabled>SIGN IN WITH GOOGLE</button>
+      <p id="loginError" class="error-message" style="display: none;"></p>
+    </form>
+
+    <!-- Register Link -->
+    <p class="signup-text">
+      You don't have an account yet?
+      <a href="#" id="showRegister">Sign up</a>
+    </p>
+
+    <!-- Register Form (hidden by default) -->
+    <form id="registerForm" style="display: none;">
+      <input type="text" id="regUsername" placeholder="Username" required />
+      <input type="email" id="regEmail" placeholder="Email" required />
+      <input type="password" id="regPassword" placeholder="Password" required />
+      <input type="password" id="regConfirmPassword" placeholder="Confirm Password" required />
+      <button type="submit" class="login-btn">SIGN UP</button>
+      <p id="registerError" class="error-message" style="display: none;"></p>
+    </form>
+  </div>
+
+  <!-- ✅ Proper external script link -->
+  <script src="../js/login.js"></script>
+</body>
+</html>
