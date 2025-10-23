@@ -1,0 +1,4 @@
+To set up the node modules run these commands:
+
+npm init -y
+npm install express mysql2 dotenv bcrypt express-session express-mysql-session body-parser cors
