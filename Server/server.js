@@ -14,216 +14,256 @@ dotenv.config();
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Debug middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
+
+// CORS - More permissive for development
 app.use(cors({
-  origin: true,
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5500'],
   credentials: true
 }));
+
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// ---------- MySQL connection pool ----------
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASS || "",
-  database: process.env.DB_NAME || "node_app",
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+// Test route
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Server is running!', timestamp: new Date().toISOString() });
 });
 
-// ---------- Session store ----------
-const MySQLStore = MySQLStoreFactory(session);
-const sessionStore = new MySQLStore({}, pool);
+// ---------- MySQL connection pool ----------
+async function createPool() {
+  try {
+    const pool = mysql.createPool({
+      host: process.env.DB_HOST || "localhost",
+      user: process.env.DB_USER || "root",
+      password: process.env.DB_PASS || "",
+      database: process.env.DB_NAME || "node_app",
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      // Debug connection
+      trace: false
+    });
 
-// session middleware
-app.use(session({
-  key: "session_cookie_name",
-  secret: process.env.SESSION_SECRET || "change_this_secret",
-  store: sessionStore,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    // secure: true, // set to true when serving over HTTPS
-    maxAge: 1000 * 60 * 60 * 24 // 1 day
+    // Test connection
+    await pool.getConnection();
+    console.log('✅ MySQL connection successful');
+    return pool;
+  } catch (error) {
+    console.error('❌ MySQL connection failed:', error);
+    process.exit(1);
   }
-}));
-
-// ---------- Utility: auth middleware ----------
-function ensureAuthenticated(req, res, next) {
-  if (req.session && req.session.userId) return next();
-  return res.status(401).json({ error: "Unauthorized" });
 }
 
-// ---------- Routes ----------
-
-// Serve main pages
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+// Initialize pool
+let pool;
+createPool().then(p => {
+  pool = p;
+  initializeServer();
+}).catch(err => {
+  console.error('Failed to initialize database:', err);
+  process.exit(1);
 });
 
-// Register
-app.post("/api/register", async (req, res) => {
-  try {
-    const { username, email, password } = req.body;
-    if (!username || !email || !password) return res.status(400).json({ error: "Missing fields" });
+function initializeServer() {
+  // ---------- Session store ----------
+  const MySQLStore = MySQLStoreFactory(session);
+  const sessionStore = new MySQLStore({
+    checkExpirationInterval: 900000,
+    expiration: 86400000,
+    createDatabaseTable: true
+  }, pool);
 
-    // check existing
-    const [rows] = await pool.query("SELECT id FROM users WHERE username = ? OR email = ?", [username, email]);
-    if (rows.length > 0) return res.status(409).json({ error: "Username or email already exists" });
-
-    // hash
-    const hashed = await bcrypt.hash(password, 10);
-    const [result] = await pool.query("INSERT INTO users (username, email, password) VALUES (?, ?, ?)", [username, email, hashed]);
-    return res.json({ success: true, id: result.insertId });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Login
-app.post("/api/login", async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: "Missing fields" });
-
-    const [rows] = await pool.query("SELECT id, password FROM users WHERE username = ?", [username]);
-    if (rows.length === 0) return res.status(401).json({ error: "Invalid credentials" });
-
-    const user = rows[0];
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(401).json({ error: "Invalid credentials" });
-
-    // set session
-    req.session.userId = user.id;
-    req.session.username = username;
-    return res.json({ success: true, message: "Logged in" });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Logout
-app.post("/api/logout", (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ error: "Logout failed" });
+  // Session middleware
+  app.use(session({
+    key: "session_cookie_name",
+    secret: process.env.SESSION_SECRET || "change_this_secret",
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false, // Set to true only with HTTPS
+      maxAge: 1000 * 60 * 60 * 24,
+      sameSite: 'lax'
     }
-    res.clearCookie("session_cookie_name");
-    return res.json({ success: true });
+  }));
+
+  // ---------- Routes ----------
+
+  // Serve static pages
+  app.get("/", (req, res) => {
+    console.log('Serving index.html');
+    res.sendFile(path.join(__dirname, "public", "index.html"));
   });
-});
 
-// Read: get all users (protected)
-app.get("/api/users", ensureAuthenticated, async (req, res) => {
-  try {
-    const [rows] = await pool.query("SELECT id, username, email, created_at FROM users");
-    return res.json(rows);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Read: get current user
-app.get("/api/me", async (req, res) => {
-  try {
-    if (!req.session.userId) return res.json({ loggedIn: false });
-    const [rows] = await pool.query("SELECT id, username, email, created_at FROM users WHERE id = ?", [req.session.userId]);
-    if (rows.length === 0) return res.json({ loggedIn: false });
-    return res.json({ loggedIn: true, user: rows[0] });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Update user (protected) - updates username or email; password change separate
-app.put("/api/users/:id", ensureAuthenticated, async (req, res) => {
-  try {
-    const id = parseInt(req.params.id, 10);
-    if (req.session.userId !== id) return res.status(403).json({ error: "Forbidden" });
-
-    const { username, email } = req.body;
-    if (!username && !email) return res.status(400).json({ error: "Nothing to update" });
-
-    // basic uniqueness check
-    if (username) {
-      const [check] = await pool.query("SELECT id FROM users WHERE username = ? AND id != ?", [username, id]);
-      if (check.length > 0) return res.status(409).json({ error: "Username already taken" });
+  app.get("/dashboard.html", (req, res) => {
+    if (!req.session.userId) {
+      console.log('Unauthorized access to dashboard, redirecting to login');
+      return res.redirect("/");
     }
-    if (email) {
-      const [check] = await pool.query("SELECT id FROM users WHERE email = ? AND id != ?", [email, id]);
-      if (check.length > 0) return res.status(409).json({ error: "Email already taken" });
+    res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+  });
+
+  // ---------- Register ----------
+  app.post("/api/register", async (req, res) => {
+    console.log('Register attempt:', req.body);
+    try {
+      const { username, email, password } = req.body;
+      
+      if (!username || !email || !password) {
+        console.log('Missing fields in register');
+        return res.status(400).json({ error: "Missing fields" });
+      }
+
+      const [existingRows] = await pool.query(
+        "SELECT id FROM credentials WHERE username = ? OR email = ?", 
+        [username, email]
+      );
+      
+      if (existingRows.length > 0) {
+        console.log('User already exists');
+        return res.status(409).json({ error: "Username or email already exists" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const [result] = await pool.query(
+        "INSERT INTO credentials (username, email, password, created_at) VALUES (?, ?, ?, NOW())", 
+        [username, email, hashedPassword]
+      );
+      
+      console.log('User registered successfully:', result.insertId);
+      return res.json({ success: true, id: result.insertId });
+    } catch (err) {
+      console.error("Registration error:", err);
+      return res.status(500).json({ error: "Server error" });
     }
+  });
 
-    const fields = [];
-    const values = [];
-    if (username) { fields.push("username = ?"); values.push(username); }
-    if (email) { fields.push("email = ?"); values.push(email); }
-    values.push(id);
+  // ---------- Login ----------
+  app.post("/api/login", async (req, res) => {
+    console.log('Login attempt:', req.body);
+    
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        console.log('Missing login fields');
+        return res.status(400).json({ error: "Missing fields" });
+      }
 
-    const sql = `UPDATE users SET ${fields.join(", ")} WHERE id = ?`;
-    await pool.query(sql, values);
-    return res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
+      const [rows] = await pool.query(
+        "SELECT id, username, email, password FROM credentials WHERE username = ? OR email = ?", 
+        [username, username]
+      );
+      
+      console.log(`Found ${rows.length} users matching: ${username}`);
+      
+      if (rows.length === 0) {
+        console.log('No user found');
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
 
-// Change password (protected)
-app.put("/api/users/:id/password", ensureAuthenticated, async (req, res) => {
-  try {
-    const id = parseInt(req.params.id, 10);
-    if (req.session.userId !== id) return res.status(403).json({ error: "Forbidden" });
+      const user = rows[0];
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      
+      console.log('Password valid:', isPasswordValid);
+      
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
 
-    const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword) return res.status(400).json({ error: "Missing fields" });
+      // Regenerate session
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error("Session regeneration error:", err);
+          return res.status(500).json({ error: "Server error" });
+        }
 
-    const [rows] = await pool.query("SELECT password FROM users WHERE id = ?", [id]);
-    if (rows.length === 0) return res.status(404).json({ error: "User not found" });
+        req.session.userId = user.id;
+        req.session.username = user.username;
+        req.session.email = user.email;
+        
+        console.log('Login successful, session created for user:', user.id);
+        
+        return res.json({ 
+          success: true, 
+          message: "Logged in successfully",
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email
+          }
+        });
+      });
+    } catch (err) {
+      console.error("Login error:", err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
 
-    const ok = await bcrypt.compare(currentPassword, rows[0].password);
-    if (!ok) return res.status(401).json({ error: "Current password incorrect" });
+  // ---------- Get current user ----------
+  app.get("/api/me", async (req, res) => {
+    console.log('Session check:', req.session.userId ? 'Authenticated' : 'Not authenticated');
+    
+    try {
+      if (!req.session.userId) {
+        return res.json({ loggedIn: false });
+      }
+      
+      const [rows] = await pool.query(
+        "SELECT id, username, email, created_at FROM credentials WHERE id = ?", 
+        [req.session.userId]
+      );
+      
+      if (rows.length === 0) {
+        req.session.destroy(() => {});
+        return res.json({ loggedIn: false });
+      }
+      
+      return res.json({ loggedIn: true, user: rows[0] });
+    } catch (err) {
+      console.error("Get user error:", err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
 
-    const hashed = await bcrypt.hash(newPassword, 10);
-    await pool.query("UPDATE users SET password = ? WHERE id = ?", [hashed, id]);
-    return res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
+  // ---------- Logout ----------
+  app.post("/api/logout", (req, res) => {
+    console.log('Logout requested');
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ error: "Logout failed" });
+      }
+      res.clearCookie("session_cookie_name");
+      console.log('Logout successful');
+      return res.json({ success: true });
+    });
+  });
 
-// Delete account (protected)
-app.delete("/api/users/:id", ensureAuthenticated, async (req, res) => {
-  try {
-    const id = parseInt(req.params.id, 10);
-    if (req.session.userId !== id) return res.status(403).json({ error: "Forbidden" });
+  // Error handling middleware
+  app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  });
 
-    await pool.query("DELETE FROM users WHERE id = ?", [id]);
-    // destroy session
-    req.session.destroy(() => {});
-    return res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
+  // 404 handler
+  app.all("*", (req, res) => {
+    console.log('404:', req.originalUrl);
+    res.status(404).json({ error: "Not found" });
+  });
 
-// fallback
-app.all("*", (req, res) => {
-  res.status(404).json({ error: "Not found" });
-});
-
-// start
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+  // Start server
+  const PORT = process.env.PORT || 5500;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📁 Static files from: ${path.join(__dirname, "public")}`);
+    console.log(`🧪 Test API: http://localhost:${PORT}/api/test`);
+  });
+}
