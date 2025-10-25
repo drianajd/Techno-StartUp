@@ -9,7 +9,7 @@ import bodyParser from "body-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
-
+import scraperRoutes from "../Route/scraperRoutes.js"
 dotenv.config();
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -19,6 +19,7 @@ app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
 });
+
 
 // CORS - More permissive for development
 app.use(cors({
@@ -93,8 +94,9 @@ function initializeServer() {
       sameSite: 'lax'
     }
   }));
+  // ---------- Scraper Route ----------
+  app.use("/api", scraperRoutes);
 
-  // ---------- Routes ----------
 
   // Serve static pages
   app.get("/", (req, res) => {
