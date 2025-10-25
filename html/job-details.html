@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/job-details.css">
+</head>
+<body>
+<div class="mobile-container">
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="status-icons">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- Header with Navigation -->
+    <div class="detail-header">
+        <button class="back-btn" id="backBtn" >
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <button class="menu-btn">
+            <i class="fas fa-ellipsis-v"></i>
+        </button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Company Logo & Title Section -->
+        <div class="job-header">
+            <div class="company-logo-large">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <h2 class="job-title-main">UX Writing Intern (OJT)</h2>
+            <div class="job-meta">
+                <span class="meta-item">UB</span>
+                <span class="meta-dot">•</span>
+                <span class="meta-item">Baguio, PH</span>
+                <span class="meta-dot">•</span>
+                <span class="meta-item">1 day ago</span>
+            </div>
+        </div>
+
+        <!-- Job Type Badge -->
+        <div class="job-type-badge">
+            <span>Job Type</span>
+        </div>
+
+        <!-- OJT Description Section -->
+        <div class="content-section">
+            <h3 class="section-heading">OJT Description</h3>
+            <p class="section-text">We're looking for a UX Writing Intern who's passionate about crafting clear, user-friendly content that enhances digital experiences. This internship offers hands-on exposure to UX writing in a collaborative environment, where your words will help shape how users interact with our products.</p>
+        </div>
+
+        <!-- Requirements Section -->
+        <div class="content-section">
+            <h3 class="section-heading">Requirements</h3>
+            <ul class="requirements-list">
+                <li>Strong written communication skills</li>
+                <li>Familiarity with UX principles and user-centered design</li>
+                <li>Attention to detail and a love for clarity</li>
+                <li>Currently enrolled in a relevant course (e.g., Communication, Design, IT)</li>
+            </ul>
+        </div>
+
+        <!-- Location Section -->
+        <div class="content-section">
+            <h3 class="section-heading">Location</h3>
+            <p class="location-address">CH8W+3X5 University of Baguio, Gen. Luna Rd, Baguio, 2600 Benguet</p>
+            <div class="map-container">
+                <img src="../res/GoogleMapTA.webp" alt="Map" class="map-image">
+            </div>
+        </div>
+
+        <!-- Informations Section -->
+        <div class="content-section">
+            <h3 class="section-heading">Informations</h3>
+            
+            <div class="info-item">
+                <h4 class="info-label">Position</h4>
+                <p class="info-value">UX Writing Intern (OJT)</p>
+            </div>
+
+            <div class="info-item">
+                <h4 class="info-label">Qualification</h4>
+                <p class="info-value">Currently enrolled in a Bachelor's Degree program</p>
+            </div>
+
+            <div class="info-item">
+                <h4 class="info-label">Experience</h4>
+                <p class="info-value">No experience required</p>
+            </div>
+
+            <div class="info-item">
+                <h4 class="info-label">Job Type</h4>
+                <p class="info-value">On-the-Job Training</p>
+            </div>
+
+            <div class="info-item">
+                <h4 class="info-label">Specialization</h4>
+                <p class="info-value">Design</p>
+            </div>
+        </div>
+
+        <!-- Facilities Section -->
+        <div class="content-section">
+            <h3 class="section-heading">Facilities and Others</h3>
+            <ul class="facilities-list">
+                <li>Medical</li>
+                <li>Dental</li>
+                <li>Technical Certification</li>
+                <li>Meal Allowance</li>
+                <li>Transport Allowance</li>
+                <li>Regular Hours</li>
+                <li>Mondays-Fridays</li>
+            </ul>
+        </div>
+
+        <!-- Save Button -->
+        <button class="save-btn">SAVE</button>
+    </div>
+
+    <!-- Home Indicator -->
+    <div class="home-indicator"></div>
+</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script>
+    document.getElementById('backBtn').addEventListener('click', function() {
+        window.location.href = 'index.html';
+    });
+
+</script>
+</body>
+</html>
