@@ -256,10 +256,10 @@ function initializeServer() {
   });
 
   // 404 handler
-  app.all("*", (req, res) => {
-    console.log('404:', req.originalUrl);
-    res.status(404).json({ error: "Not found" });
-  });
+  app.use((req, res) => {
+  console.log('404:', req.originalUrl);
+  res.status(404).json({ error: "Not found" });
+});
 
   // Start server
   const PORT = process.env.PORT || 5500;
