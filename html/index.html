@@ -7,6 +7,15 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../css/index.css">
+    <style>
+        .job-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .job-item:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
 </head>
 <body>
 <div class="mobile-container">
@@ -94,7 +103,7 @@
 
         <!-- Job List -->
         <div class="job-list">
-            <div class="job-item">
+            <div class="job-item" data-job-id="fe-developer">
                 <div class="job-icon google">
                     <span>G</span>
                 </div>
@@ -106,7 +115,7 @@
                 <i class="far fa-bookmark bookmark"></i>
             </div>
 
-            <div class="job-item">
+            <div class="job-item" data-job-id="finance-intern">
                 <div class="job-icon facebook">
                     <i class="fab fa-facebook-f"></i>
                 </div>
@@ -118,7 +127,7 @@
                 <i class="far fa-bookmark bookmark"></i>
             </div>
 
-            <div class="job-item">
+            <div class="job-item" data-job-id="graphic-designer">
                 <div class="job-icon slu">
                     <i class="fas fa-graduation-cap"></i>
                 </div>
@@ -130,7 +139,7 @@
                 <i class="far fa-bookmark bookmark"></i>
             </div>
 
-            <div class="job-item">
+            <div class="job-item" data-job-id="ux-writing-intern">
                 <div class="job-icon ub">
                     <i class="fas fa-map-marker-alt"></i>
                 </div>
@@ -142,7 +151,7 @@
                 <i class="far fa-bookmark bookmark"></i>
             </div>
 
-            <div class="job-item">
+            <div class="job-item" data-job-id="ios-developer">
                 <div class="job-icon apple">
                     <i class="fab fa-apple"></i>
                 </div>
@@ -191,15 +200,37 @@
     <script src="../js/index.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Select the first job item only
-        const firstJob = document.querySelector('.job-item');
-        if (firstJob) {
-            firstJob.addEventListener('click', () => {
-                window.location.href = 'job-details.html';
+        // Select all job items with data-job-id attribute
+        const jobItems = document.querySelectorAll('.job-item[data-job-id]');
+        
+        jobItems.forEach(jobItem => {
+            jobItem.addEventListener('click', function(e) {
+                // Don't navigate if clicking on bookmark icon
+                if (e.target.classList.contains('bookmark') || e.target.closest('.bookmark')) {
+                    e.stopPropagation();
+                    return;
+                }
+                
+                // Get the job ID from data attribute
+                const jobId = this.getAttribute('data-job-id');
+                
+                // Navigate to job details page with job ID parameter
+                window.location.href = `job-details.html?job=${jobId}`;
             });
-        }
-    });
-</script>
+        });
 
+        // Handle bookmark clicks separately (optional - prevents navigation)
+        const bookmarks = document.querySelectorAll('.bookmark');
+        bookmarks.forEach(bookmark => {
+            bookmark.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // Toggle bookmark icon
+                this.classList.toggle('far');
+                this.classList.toggle('fas');
+                // Add your bookmark save logic here
+            });
+        });
+    });
+    </script>
 </body>
 </html>
