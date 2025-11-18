@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<<<<<<< HEAD:Server/public/index.html
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Job Dashboard</title>
@@ -226,5 +227,238 @@ async function loadJobs() {
   
 </script>
 
+=======
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Search App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/index.css">
+    <style>
+        .job-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .job-item:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+<div class="mobile-container">
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="status-icons">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="app-header">
+        <div class="header-content">
+            <div>
+                <p class="greeting">Hello</p>
+                <h1 class="user-name">Ciela Bickle</h1>
+            </div>
+            <div class="header-icons">
+                <i class="fas fa-bell notification-icon"></i>
+                <img src="..//res/Monkey-Selfie.webp" alt="Profile" class="profile-pic">
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-container">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" class="form-control" placeholder="Search job, company, etc">
+            </div>
+            <button class="filter-btn">
+                <i class="fas fa-sliders-h"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <h5 class="section-title">Most Popular</h5>
+
+        <!-- Featured Job Cards -->
+        <div class="featured-cards">
+            <div class="job-card featured">
+                <div class="card-header-content">
+                    <div class="company-logo bg-success">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <div class="salary-badge">$50 - $75 / Mo</div>
+                </div>
+                <h6 class="job-title">OJT Trainee - Project Management</h6>
+                <p class="company-name">Tech-Synergy - Baguio, PH</p>
+                <div class="job-tags">
+                    <span class="tag">Training</span>
+                    <span class="tag">Remote</span>
+                    <span class="tag">OJT</span>
+                </div>
+                <i class="fas fa-bookmark bookmark-icon"></i>
+            </div>
+
+            <div class="job-card featured">
+                <div class="card-header-content">
+                    <div class="company-logo-olx">
+                        <span>OLX</span>
+                    </div>
+                </div>
+                <h6 class="job-title">OJT Trainee - Graphic Designer</h6>
+                <p class="company-name">Tech-Synergy - Baguio, PH</p>
+                <div class="job-tags">
+                    <span class="tag">Training</span>
+                    <span class="tag">Remote</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Tags -->
+        <div class="filter-tags">
+            <button class="filter-tag active">All OJT</button>
+            <button class="filter-tag">UI Designer</button>
+            <button class="filter-tag">FE Dev</button>
+            <button class="filter-tag">APP DEV</button>
+            <button class="filter-tag">Graphic</button>
+        </div>
+
+        <!-- Job List -->
+        <div class="job-list">
+            <div class="job-item" data-job-id="fe-developer">
+                <div class="job-icon google">
+                    <span>G</span>
+                </div>
+                <div class="job-info">
+                    <h6>FE Developer (OJT)</h6>
+                    <p>Google - Manila, PH</p>
+                    <small>Allowance Provided</small>
+                </div>
+                <i class="far fa-bookmark bookmark"></i>
+            </div>
+
+            <div class="job-item" data-job-id="finance-intern">
+                <div class="job-icon facebook">
+                    <i class="fab fa-facebook-f"></i>
+                </div>
+                <div class="job-info">
+                    <h6>Finance Intern (OJT)</h6>
+                    <p>Facebook - Manila, PH</p>
+                    <small>Allowance Provided</small>
+                </div>
+                <i class="far fa-bookmark bookmark"></i>
+            </div>
+
+            <div class="job-item" data-job-id="graphic-designer">
+                <div class="job-icon slu">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div class="job-info">
+                    <h6>Graphic Designer (OJT)</h6>
+                    <p>SLU - Baguio, PH</p>
+                    <small>Allowance Provided</small>
+                </div>
+                <i class="far fa-bookmark bookmark"></i>
+            </div>
+
+            <div class="job-item" data-job-id="ux-writing-intern">
+                <div class="job-icon ub">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <div class="job-info">
+                    <h6>UX Writing Intern (OJT)</h6>
+                    <p>UB - Baguio, PH</p>
+                    <small>Allowance Provided</small>
+                </div>
+                <i class="far fa-bookmark bookmark"></i>
+            </div>
+
+            <div class="job-item" data-job-id="ios-developer">
+                <div class="job-icon apple">
+                    <i class="fab fa-apple"></i>
+                </div>
+                <div class="job-info">
+                    <h6>iOS Developer (OJT)</h6>
+                    <p>Apple - Manila, PH</p>
+                    <small>Allowance Provided</small>
+                </div>
+                <i class="far fa-bookmark bookmark"></i>
+            </div>
+
+            <div class="job-item" data-job-id="social-media-intern">
+                <div class="job-icon twitter">
+                    <i class="fab fa-twitter"></i>
+                </div>
+                <div class="job-info">
+                    <h6>Social Media Intern (OJT)</h6>
+                    <p>Twitter - Manila, PH</p>
+                    <small>Allowance Provided</small>
+                </div>
+                <i class="far fa-bookmark bookmark"></i>
+            </div>
+        </div>
+    </div>
+
+  <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <a href="index.html" class="nav-item active">
+            <i class="fas fa-home"></i>
+        </a>
+        <a href="community.html" class="nav-item">
+            <i class="fas fa-network-wired"></i>
+        </a>
+        <button class="nav-item add-btn">
+            <i class="fas fa-plus"></i>
+        </button>
+        <button class="nav-item">
+            <i class="far fa-comment"></i>
+        </button>
+        <button class="nav-item">
+            <i class="far fa-bookmark"></i>
+        </button>
+    </div>
+</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script src="../js/index.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Select all job items with data-job-id attribute
+        const jobItems = document.querySelectorAll('.job-item[data-job-id]');
+        
+        jobItems.forEach(jobItem => {
+            jobItem.addEventListener('click', function(e) {
+                // Don't navigate if clicking on bookmark icon
+                if (e.target.classList.contains('bookmark') || e.target.closest('.bookmark')) {
+                    e.stopPropagation();
+                    return;
+                }
+                
+                // Get the job ID from data attribute
+                const jobId = this.getAttribute('data-job-id');
+                
+                // Navigate to job details page with job ID parameter
+                window.location.href = `job-details.html?job=${jobId}`;
+            });
+        });
+
+        // Handle bookmark clicks separately (optional - prevents navigation)
+        const bookmarks = document.querySelectorAll('.bookmark');
+        bookmarks.forEach(bookmark => {
+            bookmark.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // Toggle bookmark icon
+                this.classList.toggle('far');
+                this.classList.toggle('fas');
+                // Saved logic
+            });
+        });
+    });
+    </script>
+>>>>>>> server:html/index.html
 </body>
 </html>

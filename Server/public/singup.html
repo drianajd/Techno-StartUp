@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Job Search App</title>
+    <title>Sign Up - Job Search App</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../css/auth.css">
@@ -11,56 +11,7 @@
 <body>
 <div class="auth-container">
     <div class="auth-card">
-        <!-- Login Form -->
-        <form id="loginForm" class="auth-form">
-            <div class="logo-section">
-                <div class="logo-circle">
-                    <i class="fas fa-briefcase"></i>
-                </div>
-                <h2>Welcome Back</h2>
-                <p class="subtitle">Sign in to continue your job search</p>
-            </div>
-
-            <div id="loginError" class="error-message"></div>
-
-            <div class="form-group">
-                <label for="email">
-                    <i class="fas fa-envelope"></i>
-                    Email or Username
-                </label>
-                <input type="text" id="email" class="form-control" placeholder="Enter your email or username" required>
-            </div>
-
-            <div class="form-group">
-                <label for="password">
-                    <i class="fas fa-lock"></i>
-                    Password
-                </label>
-                <div class="password-input">
-                    <input type="password" id="password" class="form-control" placeholder="Enter your password" required>
-                    <button type="button" class="toggle-password" onclick="togglePassword('password')">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="form-options">
-                <label class="remember-me">
-                    <input type="checkbox" id="remember">
-                    <span>Remember me</span>
-                </label>
-                <a href="#" id="forgotPassword" class="forgot-link">Forgot Password?</a>
-            </div>
-
-            <button type="submit" class="btn-primary">LOGIN</button>
-
-            <p class="signup-text">
-                Don't have an account? <a href="#" id="showRegister">Sign Up</a>
-            </p>
-        </form>
-
-        <!-- Register Form -->
-        <form id="registerForm" class="auth-form" style="display: none;">
+        <form id="registerForm" class="auth-form">
             <div class="logo-section">
                 <div class="logo-circle">
                     <i class="fas fa-user-plus"></i>
@@ -70,6 +21,7 @@
             </div>
 
             <div id="registerError" class="error-message"></div>
+            <div id="registerSuccess" class="success-message"></div>
 
             <div class="form-group">
                 <label for="regUsername">
@@ -117,35 +69,7 @@
             <button type="submit" class="btn-primary">SIGN UP</button>
 
             <p class="signup-text">
-                Already have an account? <a href="#" id="showLogin">Login</a>
-            </p>
-        </form>
-
-        <!-- Forgot Password Form -->
-        <form id="forgotPasswordForm" class="auth-form" style="display: none;">
-            <div class="logo-section">
-                <div class="logo-circle">
-                    <i class="fas fa-key"></i>
-                </div>
-                <h2>Reset Password</h2>
-                <p class="subtitle">Enter your email to receive reset instructions</p>
-            </div>
-
-            <div id="forgotError" class="error-message"></div>
-            <div id="forgotSuccess" class="success-message"></div>
-
-            <div class="form-group">
-                <label for="forgotEmail">
-                    <i class="fas fa-envelope"></i>
-                    Email Address
-                </label>
-                <input type="email" id="forgotEmail" class="form-control" placeholder="Enter your email" required>
-            </div>
-
-            <button type="submit" class="btn-primary">SEND RESET LINK</button>
-
-            <p class="signup-text">
-                Remember your password? <a href="#" id="backToLogin">Login</a>
+                Already have an account? <a href="login.html">Login</a>
             </p>
         </form>
     </div>
@@ -156,6 +80,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-<script src="auth-script.js"></script>
+<script src="../js/auth.js"></script>
 </body>
 </html>
