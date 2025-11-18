@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS node_app;
-USE node_app;
+CREATE DATABASE IF NOT EXISTS grantify;
+USE grantify;
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
