@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "**Team Vianova's Midterm Project - AI-Driven Internship Matching App**",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
