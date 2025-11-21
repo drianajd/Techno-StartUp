@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Job Search App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-card">
+        <form id="registerForm" class="auth-form">
+            <div class="logo-section">
+                <div class="logo-circle">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h2>Create Account</h2>
+                <p class="subtitle">Join us and find your dream job</p>
+            </div>
+
+            <div id="registerError" class="error-message"></div>
+            <div id="registerSuccess" class="success-message"></div>
+
+            <div class="form-group">
+                <label for="regUsername">
+                    <i class="fas fa-user"></i>
+                    Username
+                </label>
+                <input type="text" id="regUsername" class="form-control" placeholder="Choose a username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="regEmail">
+                    <i class="fas fa-envelope"></i>
+                    Email
+                </label>
+                <input type="email" id="regEmail" class="form-control" placeholder="Enter your email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="regPassword">
+                    <i class="fas fa-lock"></i>
+                    Password
+                </label>
+                <div class="password-input">
+                    <input type="password" id="regPassword" class="form-control" placeholder="Create a password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('regPassword')">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <small class="form-text">At least 6 characters</small>
+            </div>
+
+            <div class="form-group">
+                <label for="regConfirmPassword">
+                    <i class="fas fa-lock"></i>
+                    Confirm Password
+                </label>
+                <div class="password-input">
+                    <input type="password" id="regConfirmPassword" class="form-control" placeholder="Confirm your password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('regConfirmPassword')">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">SIGN UP</button>
+
+            <p class="signup-text">
+                Already have an account? <a href="login.html">Login</a>
+            </p>
+        </form>
+    </div>
+
+    <div class="auth-footer">
+        <p>&copy; 2024 Job Search App. All rights reserved.</p>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+<script src="../js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/Server/public/css/job-details.css">
+</head>
+<body>
+<div class="mobile-container">
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="status-icons">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- Header with Navigation -->
+    <div class="detail-header">
+        <button class="back-btn" id="backBtn">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <button class="menu-btn">
+            <i class="fas fa-ellipsis-v"></i>
+        </button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Company Logo & Title Section -->
+        <div class="job-header">
+            <div class="company-logo-large" id="companyLogo">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <h2 class="job-title-main" id="jobTitle">Loading...</h2>
+            <div class="job-meta">
+                <span class="meta-item" id="companyName">...</span>
+                <span class="meta-dot">•</span>
+                <span class="meta-item" id="location">...</span>
+                <span class="meta-dot">•</span>
+                <span class="meta-item" id="postedDate">...</span>
+            </div>
+        </div>
+
+        <!-- Job Type Badge -->
+        <div class="job-type-badge">
+            <span id="jobType">Job Type</span>
+        </div>
+
+        <!-- OJT Description Section -->
+        <div class="content-section">
+            <h3 class="section-heading">OJT Description</h3>
+            <p class="section-text" id="description">Loading...</p>
+        </div>
+
+        <!-- Requirements Section -->
+        <div class="content-section">
+            <h3 class="section-heading">Requirements</h3>
+            <ul class="requirements-list" id="requirements">
+                <li>Loading...</li>
+            </ul>
+        </div>
+
+        <!-- Location Section -->
+        <div class="content-section">
+            <h3 class="section-heading">Location</h3>
+            <p class="location-address" id="locationAddress">Loading...</p>
+            <div class="map-container">
+                <img src="/Server/public/res/GoogleMapTA.webp" alt="Map" class="map-image">
+            </div>
+        </div>
+
+        <!-- Informations Section -->
+        <div class="content-section">
+            <h3 class="section-heading">Informations</h3>
+            
+            <div class="info-item">
+                <h4 class="info-label">Position</h4>
+                <p class="info-value" id="infoPosition">Loading...</p>
+            </div>
+
+            <div class="info-item">
+                <h4 class="info-label">Qualification</h4>
+                <p class="info-value" id="infoQualification">Loading...</p>
+            </div>
+
+            <div class="info-item">
+                <h4 class="info-label">Experience</h4>
+                <p class="info-value" id="infoExperience">Loading...</p>
+            </div>
+
+            <div class="info-item">
+                <h4 class="info-label">Job Type</h4>
+                <p class="info-value" id="infoJobType">Loading...</p>
+            </div>
+
+            <div class="info-item">
+                <h4 class="info-label">Specialization</h4>
+                <p class="info-value" id="infoSpecialization">Loading...</p>
+            </div>
+        </div>
+
+        <!-- Facilities Section -->
+        <div class="content-section">
+            <h3 class="section-heading">Facilities and Others</h3>
+            <ul class="facilities-list" id="facilities">
+                <li>Loading...</li>
+            </ul>
+        </div>
+
+        <!-- Save Button -->
+        <button class="save-btn">SAVE</button>
+    </div>
+
+    <!-- Home Indicator -->
+    <div class="home-indicator"></div>
+</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script>
+    // Job data
+const jobsData = {
+    'fe-developer': {
+        title: 'FE Developer (OJT)',
+        company: 'Google',
+        location: 'Manila, PH',
+        postedDate: '2 days ago',
+        jobType: 'On-the-Job Training',
+        logoIcon: 'fab fa-google',
+        logoGradient: 'linear-gradient(135deg, #4285f4, #34a853)',
+        description: "Join our dynamic team as a Frontend Developer Intern! You'll work alongside experienced developers to build responsive, user-friendly web applications using modern frameworks and technologies. This is an excellent opportunity to gain real-world experience in frontend development while contributing to meaningful projects that impact millions of users.",
+        requirements: [
+            'Strong knowledge of HTML5, CSS3, and JavaScript',
+            'Familiarity with React, Vue, or Angular frameworks',
+            'Understanding of responsive design principles',
+            'Currently enrolled in Computer Science, IT, or related field',
+            'Portfolio of personal or academic projects (GitHub profile preferred)'
+        ],
+        locationAddress: 'Google Philippines, 7th Avenue corner 30th Street, Bonifacio Global City, Taguig, Metro Manila',
+        position: 'Frontend Developer (OJT)',
+        qualification: "Currently enrolled in a Bachelor's Degree program in Computer Science or related field",
+        experience: 'No professional experience required, portfolio projects preferred',
+        specialization: 'Software Development / Web Development',
+        facilities: [
+            'Medical & Health Insurance',
+            'Dental Coverage',
+            'Technical Certification Support',
+            'Meal Allowance',
+            'Transport Allowance',
+            'Learning & Development Programs',
+            'Modern Office Facilities',
+            'Flexible Working Hours',
+            'Mondays-Fridays'
+        ]
+    },
+    'finance-intern': {
+        title: 'Finance Intern (OJT)',
+        company: 'Facebook',
+        location: 'Manila, PH',
+        postedDate: '3 days ago',
+        jobType: 'On-the-Job Training',
+        logoIcon: 'fab fa-facebook',
+        logoGradient: 'linear-gradient(135deg, #1877f2, #0d65d9)',
+        description: "We're seeking a Finance Intern to support our financial operations team. This role offers hands-on experience in financial analysis, budgeting, and reporting within a fast-paced tech environment. You'll work with cross-functional teams to gain insights into corporate finance, financial planning, and business operations at a global scale.",
+        requirements: [
+            'Strong analytical and numerical skills',
+            'Proficiency in Microsoft Excel and data analysis',
+            'Basic understanding of financial statements and accounting principles',
+            'Currently enrolled in Accounting, Finance, Business Administration, or related field',
+            'Excellent attention to detail and organizational skills'
+        ],
+        locationAddress: 'Meta Philippines, One Bonifacio High Street, 5th Avenue, Bonifacio Global City, Taguig, Metro Manila',
+        position: 'Finance Intern (OJT)',
+        qualification: "Currently enrolled in a Bachelor's Degree program in Finance, Accounting, or Business",
+        experience: 'No experience required',
+        specialization: 'Finance / Accounting',
+        facilities: [
+            'Medical & Health Insurance',
+            'Dental Coverage',
+            'Professional Certification Support',
+            'Meal Allowance',
+            'Transport Allowance',
+            'Mentorship Program',
+            'Career Development Workshops',
+            'Regular Hours',
+            'Mondays-Fridays'
+        ]
+    },
+    'graphic-designer': {
+        title: 'Graphic Designer (OJT)',
+        company: 'SLU',
+        location: 'Baguio, PH',
+        postedDate: '4 days ago',
+        jobType: 'On-the-Job Training',
+        logoIcon: 'fas fa-graduation-cap',
+        logoGradient: 'linear-gradient(135deg, #d32f2f, #c62828)',
+        description: "We're looking for a creative Graphic Designer Intern to join our marketing and communications team. You'll create visually compelling designs for various digital and print media, including social media content, promotional materials, and institutional publications. This internship provides excellent exposure to design work in an academic institution setting.",
+        requirements: [
+            'Proficiency in Adobe Creative Suite (Photoshop, Illustrator, InDesign)',
+            'Strong portfolio showcasing design skills and creativity',
+            'Understanding of design principles, typography, and color theory',
+            'Currently enrolled in Graphic Design, Multimedia Arts, or related field',
+            'Ability to work on multiple projects and meet deadlines'
+        ],
+        locationAddress: 'Saint Louis University, A. Bonifacio St, Baguio, 2600 Benguet',
+        position: 'Graphic Designer (OJT)',
+        qualification: "Currently enrolled in a Bachelor's Degree program in Design or related field",
+        experience: 'No experience required, portfolio required',
+        specialization: 'Design / Creative Arts',
+        facilities: [
+            'Medical',
+            'Dental',
+            'Design Software Access',
+            'Meal Allowance',
+            'Transport Allowance',
+            'Portfolio Development Support',
+            'Creative Workshops',
+            'Regular Hours',
+            'Mondays-Fridays'
+        ]
+    },
+    'ux-writing-intern': {
+        title: 'UX Writing Intern (OJT)',
+        company: 'UB',
+        location: 'Baguio, PH',
+        postedDate: '1 day ago',
+        jobType: 'On-the-Job Training',
+        logoIcon: 'fas fa-map-marker-alt',
+        logoGradient: 'linear-gradient(135deg, #4ECDC4, #44A08D)',
+        description: "We're looking for a UX Writing Intern who's passionate about crafting clear, user-friendly content that enhances digital experiences. This internship offers hands-on exposure to UX writing in a collaborative environment, where your words will help shape how users interact with our products.",
+        requirements: [
+            'Strong written communication skills',
+            'Familiarity with UX principles and user-centered design',
+            'Attention to detail and a love for clarity',
+            'Currently enrolled in a relevant course (e.g., Communication, Design, IT)'
+        ],
+        locationAddress: 'CH8W+3X5 University of Baguio, Gen. Luna Rd, Baguio, 2600 Benguet',
+        position: 'UX Writing Intern (OJT)',
+        qualification: "Currently enrolled in a Bachelor's Degree program",
+        experience: 'No experience required',
+        specialization: 'Design',
+        facilities: [
+            'Medical',
+            'Dental',
+            'Technical Certification',
+            'Meal Allowance',
+            'Transport Allowance',
+            'Regular Hours',
+            'Mondays-Fridays'
+        ]
+    },
+    'ios-developer': {
+        title: 'iOS Developer (OJT)',
+        company: 'Apple',
+        location: 'Manila, PH',
+        postedDate: '5 days ago',
+        jobType: 'On-the-Job Training',
+        logoIcon: 'fab fa-apple',
+        logoGradient: 'linear-gradient(135deg, #555555, #000000)',
+        description: "Join our iOS development team as an intern and contribute to building innovative mobile applications for the Apple ecosystem. You'll work with experienced developers to create seamless user experiences using Swift and SwiftUI, learn best practices in iOS development, and gain exposure to Apple's design principles and development frameworks.",
+        requirements: [
+            'Strong foundation in Swift programming language',
+            'Familiarity with iOS SDK, Xcode, and UIKit/SwiftUI',
+            "Understanding of Apple's Human Interface Guidelines",
+            'Currently enrolled in Computer Science, Software Engineering, or related field',
+            'Passion for mobile development and Apple products',
+            'Portfolio of iOS projects or apps (personal or academic)'
+        ],
+        locationAddress: 'Apple Philippines, Net Lima Building, 5th Avenue, Bonifacio Global City, Taguig, Metro Manila',
+        position: 'iOS Developer (OJT)',
+        qualification: "Currently enrolled in a Bachelor's Degree program in Computer Science or related field",
+        experience: 'No professional experience required, iOS project portfolio preferred',
+        specialization: 'Mobile Development / iOS',
+        facilities: [
+            'Medical & Health Insurance',
+            'Dental Coverage',
+            'Apple Developer Program Access',
+            'Meal Allowance',
+            'Transport Allowance',
+            'Technical Training & Workshops',
+            'MacBook and iPhone for Development',
+            'Mentorship from Senior Developers',
+            'Flexible Working Hours',
+            'Mondays-Fridays'
+        ]
+    },
+    'social-media-intern': {
+        title: 'Social Media Intern (OJT)',
+        company: 'Twitter',
+        location: 'Manila, PH',
+        postedDate: '1 day ago',
+        jobType: 'On-the-Job Training',
+        logoIcon: 'fab fa-twitter',
+        logoGradient: 'linear-gradient(135deg, #1DA1F2, #0D95E8)',
+        description: "Join Twitter as a Social Media Intern and assist in managing our social media presence. You'll create engaging content, monitor trends, and support community engagement initiatives. This role offers hands-on experience in social media strategy and digital marketing.",
+        requirements: [
+            'Basic knowledge of social media platforms and trends',
+            'Strong communication and writing skills',
+            'Familiarity with content creation tools (e.g., Canva, Photoshop)',
+            'Currently enrolled in Marketing, Communications, or related field',
+            'Ability to work in a fast-paced environment'
+        ],
+        locationAddress: 'Twitter Philippines, Bonifacio Global City, Taguig, Metro Manila',
+        position: 'Social Media Intern (OJT)',
+        qualification: "Currently enrolled in a Bachelor's Degree program in Marketing, Communications, or related field",
+        experience: 'No experience required',
+        specialization: 'Digital Marketing / Social Media',
+        facilities: [
+            'Meal Allowance',
+            'Transport Allowance',
+            'Learning & Development Programs',
+            'Regular Hours',
+            'Mondays-Fridays'
+        ]
+    }
+};
+    // Get job ID from URL parameter
+    function getJobIdFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('job') || 'ux-writing-intern'; // default to UX Writing if no param
+    }
+
+    // Load job details
+    function loadJobDetails() {
+        const jobId = getJobIdFromUrl();
+        const job = jobsData[jobId];
+
+        if (!job) {
+            console.error('Job not found');
+            return;
+        }
+
+        // Update header
+        document.getElementById('jobTitle').textContent = job.title;
+        document.getElementById('companyName').textContent = job.company;
+        document.getElementById('location').textContent = job.location;
+        document.getElementById('postedDate').textContent = job.postedDate;
+        document.getElementById('jobType').textContent = job.jobType;
+
+        // Update logo
+        const logoDiv = document.getElementById('companyLogo');
+        logoDiv.innerHTML = `<i class="${job.logoIcon}"></i>`;
+        logoDiv.style.background = job.logoGradient;
+
+        // Update description
+        document.getElementById('description').textContent = job.description;
+
+        // Update requirements
+        const requirementsList = document.getElementById('requirements');
+        requirementsList.innerHTML = job.requirements.map(req => `<li>${req}</li>`).join('');
+
+        // Update location
+        document.getElementById('locationAddress').textContent = job.locationAddress;
+
+        // Update information section
+        document.getElementById('infoPosition').textContent = job.position;
+        document.getElementById('infoQualification').textContent = job.qualification;
+        document.getElementById('infoExperience').textContent = job.experience;
+        document.getElementById('infoJobType').textContent = job.jobType;
+        document.getElementById('infoSpecialization').textContent = job.specialization;
+
+        // Update facilities
+        const facilitiesList = document.getElementById('facilities');
+        facilitiesList.innerHTML = job.facilities.map(facility => `<li>${facility}</li>`).join('');
+
+        // Update page title
+        document.title = `${job.title} - Job Details`;
+    }
+
+    // Back button
+    document.getElementById('backBtn').addEventListener('click', function() {
+        window.location.href = 'index.html';
+    });
+
+    // Load job details when page loads
+    document.addEventListener('DOMContentLoaded', loadJobDetails);
+    </script>
+</body>
+</html>

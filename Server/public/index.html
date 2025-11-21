@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Dashboard</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <div class="header-bg">
+    <div class="user-info">
+      <div class="user-info-left">
+        <div class="profile-pic">
+          <img src="res/Monkey-Selfie.webp" alt="Profile picture">
+        </div>
+        <div id="userGreeting">
+          <h1>Loading...</h1>
+          <p>Find your dream OJT</p>
+        </div>
+      </div>
+      <div class="user-actions">
+        <a href="message.html" class="notification">✉︎</a>
+        <button id="logoutBtn" class="logout-btn">Logout</button>
+      </div>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search job, company, etc">
+      <select>
+        <option value="">All</option>
+        <option value="remote">Remote</option>
+        <option value="onsite">On-site</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <h2>Most Popular</h2>
+    <a href="#">See all</a>
+  </div>
+
+  <section class="popular-jobs">
+    <div class="jobs-scroll">
+      <div class="job-card highlighted">
+        <div class="job-card-header">
+          <img src="res/bird.png" alt="Company Logo">
+          <div class="job-card-info">
+            <h3>OJT Trainee - Project Management</h3>
+            <p>Energy • Baguio, PH</p>
+          </div>
+        </div>
+        <div class="job-tags">
+          <span class="job-tag">Training</span>
+          <span class="job-tag">Remote</span>
+          <span class="job-tag">OJT</span>
+        </div>
+      </div>
+
+      <div class="job-card">
+        <div class="job-card-header">
+          <img src="res/olx.png" alt="Company Logo">
+          <div class="job-card-info">
+            <h3>OJT Trainee - Graphic Design</h3>
+            <p>Tech-Synergy • Baguio, PH</p>
+          </div>
+        </div>
+        <div class="job-tags">
+          <span class="job-tag">Training</span>
+          <span class="job-tag">Remote</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-header">
+    <h2>All OJT</h2>
+    <a href="#">View more</a>
+  </div>
+
+  <section class="job-categories">
+    <div class="category-scroll">
+      <button class="category-btn active">UI Designer</button>
+      <button class="category-btn">FE Dev</button>
+      <button class="category-btn">APP DEV</button>
+      <button class="category-btn">Graphic</button>
+      <button class="category-btn">Backend</button>
+      <button class="category-btn">Marketing</button>
+    </div>
+  </section>
+
+  <section class="job-list">
+    <a href="jobdesc.html" class="job-item">
+      <img src="res/Google__G__logo.svg.webp" alt="Google Logo">
+      <div>
+        <h3>FE Developer (OJT)</h3>
+        <p>Google • Manila, PH</p>
+        <p class="allowance">Allowance Provided</p>
+      </div>
+    </a>
+
+    <a href="jobdesc.html?job=finance" class="job-item">
+      <img src="res/Facebook_Logo_2023.png" alt="Facebook Logo">
+      <div>
+        <h3>Finance Intern (OJT)</h3>
+        <p>Facebook • Manila, PH</p>
+        <p class="allowance">Allowance Provided</p>
+      </div>
+    </a>
+
+    <div class="job-item">
+      <img src="res/graphic.png" alt="Graphic Logo">
+      <div>
+        <h3>Graphic Designer (OJT)</h3>
+        <p>SLU • Baguio, PH</p>
+        <p class="allowance">Allowance Provided</p>
+      </div>
+    </div>
+
+    <div class="job-item">
+      <img src="res/ux.png" alt="UX Writing Logo">
+      <div>
+        <h3>UX Writing Intern (OJT)</h3>
+        <p>UB • Baguio, PH</p>
+        <p class="allowance">Allowance Provided</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 🔹 Dynamic Job Feed Section -->
+<section class="job-list" id="jobContainer">
+  <p>Loading jobs...</p>
+</section>
+
+<p id="updateTime" style="text-align:center; font-size: 12px; color: gray; margin-top: 8px;">
+  🔄 Last updated: waiting...
+</p>
+
+  <footer>
+    <a href="index.html" class="nav-icon active">🏠</a>
+    <a href="world.html" class="nav-icon">🌐</a>
+    <a href="#add" class="nav-icon add">+</a>
+    <a href="message.html" class="nav-icon">💬</a>
+    <a href="#guide" class="nav-icon">⛉</a>
+  </footer>
+
+  <script>
+    loadJobs();
+    // Check authentication
+    // async function checkAuth() {
+    //   try {
+    //     const response = await fetch('/api/me', {
+    //       method: 'GET',
+    //       credentials: 'include'
+    //     });
+    //     const data = await response.json();
+
+    //     // if (!data.loggedIn) {
+    //     //   window.location.href = '/';
+    //     //   return false;
+    //     // }
+
+    //     const userGreeting = document.getElementById('userGreeting');
+    //     userGreeting.innerHTML = `
+    //       <h1>Hello ${data.user.username || data.user.email}!</h1>
+    //       <p>Find your dream OJT</p>
+    //     `;
+    //     return true;
+    //   } catch (error) {
+    //     console.error('Authentication check failed:', error);
+    //     window.location.href = '/';
+    //     return false;
+    //   }
+    // }
+
+    // Logout functionality
+async function loadJobs() {
+    const container = document.getElementById('jobContainer');
+    const updateTime = document.getElementById('updateTime');
+    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+
+    container.innerHTML = '<p>Fetching latest internships...</p>';
+
+    try {
+      const res = await fetch('/api/jobs');
+      const jobs = await res.json();
+      container.innerHTML = '';
+
+      const filtered = jobs.filter(job =>
+        job.title.toLowerCase().includes(searchTerm) ||
+        job.company.toLowerCase().includes(searchTerm)
+      );
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<p>No internship listings found.</p>';
+        return;
+      }
+
+      filtered.forEach(job => {
+        // fetch logo using Clearbit
+        const companyDomain = job.company.split(' ')[0].toLowerCase();
+        const logoUrl = `https://logo.clearbit.com/${companyDomain}.com`;
+
+        const item = document.createElement('a');
+        item.href = job.link;
+        item.target = '_blank';
+        item.className = 'job-item';
+        item.innerHTML = `
+          <img src="${logoUrl}" alt="${job.company} Logo" 
+              onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'"
+          <div>
+            <h3>${job.title}</h3>
+            <p>${job.company}</p>
+            <p class="site">${job.site}</p>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+
+      updateTime.textContent = "🔄 Last updated: " + new Date().toLocaleTimeString();
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
+      container.innerHTML = '<p>⚠️ Unable to load jobs. Please try again later.</p>';
+    }
+  }
+  // auto-refresh
+  setInterval(loadJobs, 5 * 60 * 1000);
+  
+</script>
+
+</body>
+</html>
