@@ -10,6 +10,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
 import scraperRoutes from "../Route/scraperRoutes.js"
+import cron from "node-cron";
+import axios from "axios";
+
 dotenv.config();
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -261,11 +264,27 @@ function initializeServer() {
   res.status(404).json({ error: "Not found" });
 });
 
+// --------- AUTO SCRAPER (EVERY 30 MINUTES) ---------
+cron.schedule("*/30 * * * *", async () => {
+  console.log("Scraping jobs automatically...");
+
+  try {
+    // Call your scraper route internally
+    const port = process.env.PORT || 5500;
+    const host = process.env.DB_HOST || localhost;
+    await axios.get(`http://${host}:${port}/api/jobs`);
+    console.log("Job scraping completed.");
+  } catch (err) {
+    console.error("Error:", err.message);
+  }
+});
+
+
   // Start server
   const PORT = process.env.PORT || 5500;
   app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`📁 Static files from: ${path.join(__dirname, "public")}`);
-    console.log(`🧪 Test API: http://localhost:${PORT}/api/test`);
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Static files from: ${path.join(__dirname, "public")}`);
+    console.log(`Test API: http://localhost:${PORT}/api/test`);
   });
 }

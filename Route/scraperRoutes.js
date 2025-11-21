@@ -2,10 +2,11 @@
 import express from "express";
 import axios from "axios";
 import * as cheerio from "cheerio";
+import { saveJob } from "../Server/dbConnection/saveScrapedData";
 
 const router = express.Router();
 
-// ✅ Keywords for internship/OJT listings
+// Keywords for internship/OJT listings
 const internshipKeywords = [
   "internship",
   "ojt",
@@ -15,10 +16,15 @@ const internshipKeywords = [
   "intern",
 ];
 
-// ✅ Utility: Check if title/desc contains related terms
+// Utility: Check if title/desc contains related terms
 function isInternship(title, desc) {
   const text = `${title} ${desc}`.toLowerCase();
   return internshipKeywords.some((kw) => text.includes(kw));
+}
+
+// Utility to extract qualifications text safely
+function extractText($el) {
+  return $el.text()?.trim()?.replace(/\s+/g, " ") || "N/A";
 }
 
 /* ---------------------------------------------------------
@@ -38,14 +44,21 @@ async function scrapeJobStreet() {
       .text()
       .trim();
 
+    // JobStreet shows job snippet/description
+    const qualifications = extractText(
+      $(el).find("div[data-automation='job-card-snippet']")
+    );
+
     if (isInternship(title, company)) {
       jobs.push({
         site: "JobStreet",
         title,
+        position: title,
         company,
         link: link?.startsWith("http")
           ? link
           : `https://www.jobstreet.com.ph${link}`,
+        skills: qualifications,
       });
     }
   });
@@ -57,7 +70,8 @@ async function scrapeJobStreet() {
    ONLINEJOBS.PH
 --------------------------------------------------------- */
 async function scrapeOnlineJobs() {
-  const url = "https://www.onlinejobs.ph/jobseekers/jobsearch?keyword=internship";
+  const url =
+    "https://www.onlinejobs.ph/jobseekers/jobsearch?keyword=internship";
   const { data } = await axios.get(url);
   const $ = cheerio.load(data);
   const jobs = [];
@@ -67,12 +81,16 @@ async function scrapeOnlineJobs() {
     const link = $(el).find("h4 a").attr("href");
     const company = $(el).find(".company-name").text().trim();
 
+    const qualifications = extractText($(el).find(".skillmarks, .jobdesc"));
+
     if (isInternship(title, company)) {
       jobs.push({
         site: "OnlineJobs.ph",
         title,
+        position: title,
         company,
         link: `https://www.onlinejobs.ph${link}`,
+        skills: qualifications,
       });
     }
   });
@@ -94,12 +112,16 @@ async function scrapeCareerJet() {
     const link = $(el).find("h2 a").attr("href");
     const company = $(el).find(".company").text().trim();
 
+    const qualifications = extractText($(el).find(".desc, .content"));
+
     if (isInternship(title, company)) {
       jobs.push({
         site: "CareerJet",
         title,
+        position: title,
         company,
         link,
+        skills: qualifications,
       });
     }
   });
@@ -121,12 +143,19 @@ async function scrapeIndeed() {
     const company = $(el).find(".companyName").text().trim();
     const link = "https://ph.indeed.com" + $(el).attr("href");
 
+    // Indeed sometimes includes short snippet
+    const qualifications = extractText(
+      $(el).find(".job-snippet li, .job-snippet")
+    );
+
     if (isInternship(title, company)) {
       jobs.push({
         site: "Indeed",
         title,
+        position: title,
         company,
         link,
+        skills: qualifications,
       });
     }
   });
@@ -138,7 +167,8 @@ async function scrapeIndeed() {
    GLASSDOOR PHILIPPINES
 --------------------------------------------------------- */
 async function scrapeGlassdoor() {
-  const url = "https://www.glassdoor.com/Job/philippines-internship-jobs-SRCH_IL.0,11_IN204_KO12,22.htm";
+  const url =
+    "https://www.glassdoor.com/Job/philippines-internship-jobs-SRCH_IL.0,11_IN204_KO12,22.htm";
   const { data } = await axios.get(url);
   const $ = cheerio.load(data);
   const jobs = [];
@@ -148,12 +178,18 @@ async function scrapeGlassdoor() {
     const company = $(el).find(".employerName").text().trim();
     const link = "https://www.glassdoor.com" + $(el).find("a").attr("href");
 
+    const qualifications = extractText(
+      $(el).find(".job-snippet, .jobDesc, .css-1amvtou")
+    );
+
     if (isInternship(title, company)) {
       jobs.push({
         site: "Glassdoor",
         title,
+        position: title,
         company,
         link,
+        skills: qualifications,
       });
     }
   });
@@ -165,7 +201,8 @@ async function scrapeGlassdoor() {
    LINKEDIN JOBS
 --------------------------------------------------------- */
 async function scrapeLinkedIn() {
-  const url = "https://www.linkedin.com/jobs/search?keywords=internship&location=Philippines";
+  const url =
+    "https://www.linkedin.com/jobs/search?keywords=internship&location=Philippines";
   const { data } = await axios.get(url);
   const $ = cheerio.load(data);
   const jobs = [];
@@ -175,12 +212,18 @@ async function scrapeLinkedIn() {
     const company = $(el).find(".base-search-card__subtitle").text().trim();
     const link = $(el).find("a.base-card__full-link").attr("href");
 
+    const qualifications = extractText(
+      $(el).find(".job-card-container__description, .result-benefits")
+    );
+
     if (isInternship(title, company)) {
       jobs.push({
         site: "LinkedIn",
         title,
+        position: title,
         company,
         link,
+        skills: qualifications,
       });
     }
   });
@@ -209,8 +252,7 @@ router.get("/jobs", async (req, res) => {
       scrapeLinkedIn(),
     ]);
 
-    // Only keep fulfilled promises
-    const allJobs = [
+    let allJobs = [
       ...(jobStreet.value || []),
       ...(onlineJobs.value || []),
       ...(careerJet.value || []),
@@ -219,15 +261,44 @@ router.get("/jobs", async (req, res) => {
       ...(linkedIn.value || []),
     ];
 
-    if (allJobs.length === 0) {
-      return res.json([{ message: "No internship or OJT listings found." }]);
+    /* ========================================================
+        1.) REMOVE DUPLICATES FROM SCRAPED DATA ITSELF
+    ======================================================== */
+    const seen = new Set();
+    allJobs = allJobs.filter(job => {
+      const key = `${job.company}-${job.position}-${job.link}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    /* ========================================================
+        2.) SAVE ONLY NEW JOBS TO DATABASE (link-based)
+    ======================================================== */
+    let savedCount = 0;
+
+    for (const job of allJobs) {
+      const exists = await checkDuplicate(job.link);
+      if (!exists) {
+        await saveJob(job);
+        savedCount++;
+      }
     }
 
-    res.json(allJobs);
-  } catch (error) {
-    console.error("Scraper error:", error.message);
-    res.status(500).json({ error: "Error fetching job data." });
+    /* ========================================================
+        Return ALL scraped jobs 
+    ======================================================== */
+    res.json({
+      totalScraped: allJobs.length,
+      newJobsSaved: savedCount,
+      jobs: allJobs,
+    });
+
+  } catch (err) {
+    console.error("Scraper error:", err.message);
+    res.status(500).json({ error: "Error fetching job data" });
   }
 });
+
 
 export default router;
