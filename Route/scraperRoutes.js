@@ -2,7 +2,7 @@
 import express from "express";
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { saveJob } from "../Server/dbConnection/saveScrapedData.js";
+
 
 const router = express.Router();
 
