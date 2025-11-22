@@ -4,13 +4,13 @@ USE grantify;
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  username VARCHAR(100) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  email VARCHAR(255) NOT NULL UNIQUE,
+  username VARCHAR(50) NOT NULL UNIQUE,
+  password VARCHAR(50) NOT NULL,
+  email VARCHAR(75) NOT NULL UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE user_skills (
+CREATE TABLE IF NOT EXISTS user_skills (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   skill VARCHAR(255) NOT NULL,
@@ -26,4 +26,12 @@ CREATE TABLE IF NOT EXISTS internships (
     qualifications TEXT,
     site VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS notifications_sent (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  job_id INT NOT NULL,
+  sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_user_job (user_id, job_id)
 );

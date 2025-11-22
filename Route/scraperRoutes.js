@@ -2,7 +2,8 @@
 import express from "express";
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { saveJob } from "../Server/dbConnection/saveScrapedData";
+import { saveJob } from "../Server/dbConnection/saveScrapedData.js";
+import { checkDuplicate } from "../Server/dbConnection/checkDuplicate.js";
 
 const router = express.Router();
 

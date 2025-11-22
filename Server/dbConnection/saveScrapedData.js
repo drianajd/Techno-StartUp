@@ -1,6 +1,7 @@
+import pool from "./dbcon.js";
 export async function saveJob(job) {
   const [existing] = await pool.query(
-    "SELECT id FROM scraped_jobs WHERE link = ? LIMIT 1",
+    "SELECT id FROM internships WHERE link = ? LIMIT 1",
     [job.link]
   );
 
@@ -10,7 +11,7 @@ export async function saveJob(job) {
   }
 
   await pool.query(
-    `INSERT INTO scraped_jobs (company, position, link, qualifications, site)
+    `INSERT INTO internships (company, position, link, qualifications, site)
      VALUES (?, ?, ?, ?, ?)`,
     [job.company, job.position, job.link, job.skills, job.site]
   );
