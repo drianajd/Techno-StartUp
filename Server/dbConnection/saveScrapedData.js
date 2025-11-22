@@ -1,20 +1,14 @@
 import pool from "./dbcon.js";
 export async function saveJob(job) {
-  const [existing] = await pool.query(
-    "SELECT id FROM internships WHERE link = ? LIMIT 1",
-    [job.link]
-  );
+  const normalizedLink = job.link.trim().toLowerCase().replace(/\/$/, "");
 
-  if (existing.length > 0) {
-    console.log("Duplicate skipped:", job.link);
-    return;
-  }
-
+  // Insert directly; let database prevent duplicates
   await pool.query(
-    `INSERT INTO internships (company, position, link, qualifications, site)
+    `INSERT IGNORE INTO internships (company, position, link, qualifications, site)
      VALUES (?, ?, ?, ?, ?)`,
-    [job.company, job.position, job.link, job.skills, job.site]
+    [job.company, job.position, normalizedLink, job.skills, job.site]
   );
 
   console.log("Job added:", job.position);
 }
+
