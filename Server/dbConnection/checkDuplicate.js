@@ -1,4 +1,4 @@
-import pool from "../dbConnection/dbcon.js"
+import pool from "./dbcon.js"
 export async function checkDuplicate(link) {
   try {
     const [rows] = await pool.query(

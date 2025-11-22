@@ -14,7 +14,7 @@ const transporter = nodemailer.createTransport({
 // Fetch users & skills then compare to job qualifications
 export async function findMatchingUsersAndSendEmails() {
   const [users] = await pool.query("SELECT id, email, skills FROM users");
-  const [jobs] = await pool.query("SELECT * FROM scraped_jobs ORDER BY id DESC");
+  const [jobs] = await pool.query("SELECT * FROM internships ORDER BY id DESC");
 
   for (const user of users) {
     const userSkills = JSON.parse(user.skills || "[]");

@@ -286,7 +286,7 @@ cron.schedule("*/30 * * * *", async () => {
   try {
     // Call your scraper route internally
     const port = process.env.PORT || 5500;
-    const host = process.env.DB_HOST || localhost;
+    const host = "localhost";
     await axios.get(`http://${host}:${port}/api/jobs`);
     console.log("Job scraping completed.");
   } catch (err) {
@@ -303,7 +303,7 @@ cron.schedule("0 */2 * * *", async () => {
   const PORT = process.env.PORT || 5500;
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Static files from: ${path.join(__dirname, "public")}`);
+    // console.log(`Static files from: ${path.join(__dirname, "public")}`);
     console.log(`Test API: http://localhost:${PORT}/api/test`);
   });
 }
