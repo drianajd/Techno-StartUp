@@ -28,13 +28,16 @@ function extractText($el) {
   return $el.text()?.trim()?.replace(/\s+/g, " ") || "N/A";
 }
 
-
+const headers = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+};
 
 /* ---------------------------------------------------------
    JOBSTREET PHILIPPINES
 --------------------------------------------------------- */
 export async function scrapeJobStreet() {
-  const url = "https://ph.jobstreet.com/internship-jobs";
+  const url = "https://ph.jobstreet.com/internship-jobs/in-Philippines";
   const { data } = await axios.get(url, { headers });
   const $ = cheerio.load(data);
   const jobs = [];
@@ -96,7 +99,7 @@ async function scrapeOnlineJobs() {
    CAREERJET PHILIPPINES
 --------------------------------------------------------- */
 async function scrapeCareerJet() {
-  const url = "https://www.careerjet.ph/search/jobs?s=internship";
+  const url = "https://www.careerjet.ph/jobs?s=internship&l=";
   const { data } = await axios.get(url);
   const $ = cheerio.load(data);
   const jobs = [];
@@ -163,11 +166,11 @@ export async function scrapeGlassdoor() {
   const $ = cheerio.load(data);
   const jobs = [];
 
-  $("li.react-job-listing").each((_, el) => {
-    const title = $(el).find("a.jobLink").text().trim();
-    const company = $(el).find(".jobEmpolyerName, .jobHeader").text().trim();
-    const link = "https://www.glassdoor.com" + $(el).find("a.jobLink").attr("href");
-    const qualifications = extractText($(el).find(".jobDescriptionContent"));
+  $("div.JobCard_jobCardLeftContent__cHcGe").each((_, el) => {
+    const title = $(el).find("a.JobCard_jobTitle__GLyJ1").text().trim();
+    const company = $(el).find("span.EmployerProfile_compactEmployerName__9MGcV").text().trim();
+    const link = "https://www.glassdoor.com" + $(el).find("a.JobCard_jobTitle__GLyJ1").attr("href");
+    const qualifications = extractText($(el).find("div.JobCard_jobDescriptionSnippet__l1tnl"));
 
     if (isInternship(title, company)) {
       jobs.push({
@@ -182,8 +185,9 @@ export async function scrapeGlassdoor() {
   });
 
   console.log("Glassdoor jobs found:", jobs.length);
-  return jobs
+  return jobs;
 }
+
 
 /* ---------------------------------------------------------
    LINKEDIN JOBS
