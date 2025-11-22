@@ -3,7 +3,7 @@ import express from "express";
 import axios from "axios";
 import * as cheerio from "cheerio";
 import { saveJob } from "../Server/dbConnection/saveScrapedData.js";
-import { checkDuplicate } from "../Server/dbConnection/checkDuplicate.js";
+import { checkDuplicate } from "../Server/dbConnection/saveScrapedData.js";
 
 const router = express.Router();
 
@@ -28,27 +28,22 @@ function extractText($el) {
   return $el.text()?.trim()?.replace(/\s+/g, " ") || "N/A";
 }
 
+
+
 /* ---------------------------------------------------------
    JOBSTREET PHILIPPINES
 --------------------------------------------------------- */
-async function scrapeJobStreet() {
-  const url = "https://www.jobstreet.com.ph/en/job-search/internship-jobs/";
-  const { data } = await axios.get(url);
+export async function scrapeJobStreet() {
+  const url = "https://ph.jobstreet.com/internship-jobs";
+  const { data } = await axios.get(url, { headers });
   const $ = cheerio.load(data);
   const jobs = [];
 
-  $("article").each((_, el) => {
-    const title = $(el).find("a").text().trim();
-    const link = $(el).find("a").attr("href");
-    const company = $(el)
-      .find("span[data-automation='job-card-company-name']")
-      .text()
-      .trim();
-
-    // JobStreet shows job snippet/description
-    const qualifications = extractText(
-      $(el).find("div[data-automation='job-card-snippet']")
-    );
+  $("div[data-automation='job-card']").each((_, el) => {
+    const title = $(el).find("a[data-automation='job-card-title']").text().trim();
+    const link = $(el).find("a[data-automation='job-card-title']").attr("href");
+    const company = $(el).find("span[data-automation='job-card-company-name']").text().trim();
+    const qualifications = extractText($(el).find("div[data-automation='job-card-snippet']"));
 
     if (isInternship(title, company)) {
       jobs.push({
@@ -56,17 +51,15 @@ async function scrapeJobStreet() {
         title,
         position: title,
         company,
-        link: link?.startsWith("http")
-          ? link
-          : `https://www.jobstreet.com.ph${link}`,
+        link: link?.startsWith("http") ? link : `https://www.jobstreet.com.ph${link}`,
         skills: qualifications,
       });
     }
   });
 
+  console.log("JobStreet jobs found:", jobs.length);
   return jobs;
 }
-
 /* ---------------------------------------------------------
    ONLINEJOBS.PH
 --------------------------------------------------------- */
@@ -133,21 +126,17 @@ async function scrapeCareerJet() {
 /* ---------------------------------------------------------
    INDEED PHILIPPINES
 --------------------------------------------------------- */
-async function scrapeIndeed() {
-  const url = "https://ph.indeed.com/jobs?q=internship";
-  const { data } = await axios.get(url);
+export async function scrapeIndeed() {
+  const url = "https://ph.indeed.com/jobs?q=internship&l=Philippines";
+  const { data } = await axios.get(url, { headers });
   const $ = cheerio.load(data);
   const jobs = [];
 
   $("a.tapItem").each((_, el) => {
-    const title = $(el).find("h2.jobTitle").text().trim();
+    const title = $(el).find("h2.jobTitle span").text().trim();
     const company = $(el).find(".companyName").text().trim();
     const link = "https://ph.indeed.com" + $(el).attr("href");
-
-    // Indeed sometimes includes short snippet
-    const qualifications = extractText(
-      $(el).find(".job-snippet li, .job-snippet")
-    );
+    const qualifications = extractText($(el).find(".job-snippet li, .job-snippet"));
 
     if (isInternship(title, company)) {
       jobs.push({
@@ -161,27 +150,24 @@ async function scrapeIndeed() {
     }
   });
 
+  console.log("Indeed jobs found:", jobs.length);
   return jobs;
 }
 
 /* ---------------------------------------------------------
    GLASSDOOR PHILIPPINES
 --------------------------------------------------------- */
-async function scrapeGlassdoor() {
-  const url =
-    "https://www.glassdoor.com/Job/philippines-internship-jobs-SRCH_IL.0,11_IN204_KO12,22.htm";
-  const { data } = await axios.get(url);
+export async function scrapeGlassdoor() {
+  const url = "https://www.glassdoor.com/Job/philippines-internship-jobs-SRCH_IL.0,11_IN204_KO12,22.htm";
+  const { data } = await axios.get(url, { headers });
   const $ = cheerio.load(data);
   const jobs = [];
 
-  $(".job-search-1 .jobCard").each((_, el) => {
-    const title = $(el).find(".jobTitle").text().trim();
-    const company = $(el).find(".employerName").text().trim();
-    const link = "https://www.glassdoor.com" + $(el).find("a").attr("href");
-
-    const qualifications = extractText(
-      $(el).find(".job-snippet, .jobDesc, .css-1amvtou")
-    );
+  $("li.react-job-listing").each((_, el) => {
+    const title = $(el).find("a.jobLink").text().trim();
+    const company = $(el).find(".jobEmpolyerName, .jobHeader").text().trim();
+    const link = "https://www.glassdoor.com" + $(el).find("a.jobLink").attr("href");
+    const qualifications = extractText($(el).find(".jobDescriptionContent"));
 
     if (isInternship(title, company)) {
       jobs.push({
@@ -195,7 +181,8 @@ async function scrapeGlassdoor() {
     }
   });
 
-  return jobs;
+  console.log("Glassdoor jobs found:", jobs.length);
+  return jobs
 }
 
 /* ---------------------------------------------------------
