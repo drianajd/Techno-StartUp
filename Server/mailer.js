@@ -1,7 +1,6 @@
-import pool from "../Server/dbConnection/db.js";
+import pool from "../Server/dbConnection/dbcon.js";
 import nodemailer from "nodemailer";
 
-//TODO: CREATE AN EMAIL FOR THE APP
 // Email sender setup
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -13,15 +12,26 @@ const transporter = nodemailer.createTransport({
 
 // Fetch users & skills then compare to job qualifications
 export async function findMatchingUsersAndSendEmails() {
-  const [users] = await pool.query("SELECT id, email, skills FROM users");
+  const [users] = await pool.query("SELECT id, email FROM users");
+
   const [jobs] = await pool.query("SELECT * FROM internships ORDER BY id DESC");
 
   for (const user of users) {
-    const userSkills = JSON.parse(user.skills || "[]");
+    // Fetch skills for user
+    const [skillsRows] = await pool.query(
+      "SELECT skill FROM user_skills WHERE user_id = ?",
+      [user.id]
+    );
 
-    // Filter jobs that match user skills
+    const userSkills = skillsRows.map(s => s.skill.toLowerCase());
+
+    if (userSkills.length === 0) continue; // Skip users without skills
+
+    // Find matched jobs
     const matchedJobs = jobs.filter(job =>
-      userSkills.some(skill => job.qualifications.toLowerCase().includes(skill.toLowerCase()))
+      userSkills.some(skill =>
+        job.qualifications?.toLowerCase().includes(skill)
+      )
     );
 
     // Filter out jobs already sent
@@ -51,13 +61,19 @@ async function sendMatchedEmail(email, jobs) {
     .map(j => `• ${j.position} at ${j.company}\n${j.link}`)
     .join("\n\n");
 
-  await transporter.sendMail({
-    from: `"Job Alert" <${process.env.EMAIL_USER}>`,
-    to: email,
-    subject: "New Job Matches for Your Skills",
-    text: `We found new job openings that match your skills:\n\n${jobList}`,
-  });
+  try {
+    const info = await transporter.sendMail({
+      from: `"Job Alert" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "New Job Matches for Your Skills",
+      text: `We found new job openings that match your skills:\n\n${jobList}`,
+    });
 
-  // TODO: remove
-  console.log(`Email sent to ${email}`);
+    console.log("Accepted:", info.accepted);
+    console.log("Rejected:", info.rejected);
+    console.log("Pending:", info.pending);
+
+  } catch (err) {
+    console.error("Nodemailer Error:", err);
+  }
 }
