@@ -214,7 +214,7 @@ async function loadJobs() {
         `;
         container.appendChild(item);
       });
-
+      
       updateTime.textContent = "🔄 Last updated: " + new Date().toLocaleTimeString();
     } catch (err) {
       console.error('Error fetching jobs:', err);

@@ -264,6 +264,21 @@ function initializeServer() {
   res.status(404).json({ error: "Not found" });
 });
 
+async function runScraper() {
+  console.log("Initial job scraping...");
+  try {
+    const port = process.env.PORT || 5500;
+    const host = "localhost";
+    await axios.get(`http://${host}:${port}/api/jobs`);
+    console.log("Initial scraping completed.");
+  } catch (err) {
+    console.error("Error:", err.message);
+  }
+}
+
+// Run once immediately
+runScraper();
+
 // --------- AUTO SCRAPER (EVERY 30 MINUTES) ---------
 cron.schedule("*/30 * * * *", async () => {
   console.log("Scraping jobs automatically...");
@@ -277,6 +292,10 @@ cron.schedule("*/30 * * * *", async () => {
   } catch (err) {
     console.error("Error:", err.message);
   }
+});
+
+cron.schedule("0 */2 * * *", async () => {
+  await findMatchingUsersAndSendEmails();
 });
 
 

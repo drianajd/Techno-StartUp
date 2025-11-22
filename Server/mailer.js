@@ -13,21 +13,35 @@ const transporter = nodemailer.createTransport({
 
 // Fetch users & skills then compare to job qualifications
 export async function findMatchingUsersAndSendEmails() {
-  const users = await pool.query("SELECT id, email, skills FROM users");
-  const jobs = await pool.query("SELECT * FROM scraped_jobs ORDER BY id DESC");
+  const [users] = await pool.query("SELECT id, email, skills FROM users");
+  const [jobs] = await pool.query("SELECT * FROM scraped_jobs ORDER BY id DESC");
 
-  for (const user of users[0]) {
+  for (const user of users) {
     const userSkills = JSON.parse(user.skills || "[]");
 
-    // Match: job qualifications contain at least 1 user skill
-    const matchedJobs = jobs[0].filter(job =>
-      userSkills.some(skill =>
-        job.qualifications.toLowerCase().includes(skill.toLowerCase())
-      )
+    // Filter jobs that match user skills
+    const matchedJobs = jobs.filter(job =>
+      userSkills.some(skill => job.qualifications.toLowerCase().includes(skill.toLowerCase()))
     );
 
-    if (matchedJobs.length > 0) {
-      await sendMatchedEmail(user.email, matchedJobs);
+    // Filter out jobs already sent
+    const [alreadySent] = await pool.query(
+      "SELECT job_id FROM notifications_sent WHERE user_id = ?",
+      [user.id]
+    );
+    const sentJobIds = new Set(alreadySent.map(row => row.job_id));
+
+    const newJobs = matchedJobs.filter(job => !sentJobIds.has(job.id));
+
+    if (newJobs.length > 0) {
+      await sendMatchedEmail(user.email, newJobs);
+
+      // Record sent notifications
+      const values = newJobs.map(job => [user.id, job.id]);
+      await pool.query(
+        "INSERT IGNORE INTO notifications_sent (user_id, job_id) VALUES ?",
+        [values]
+      );
     }
   }
 }
