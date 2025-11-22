@@ -12,7 +12,7 @@ import cors from "cors";
 import scraperRoutes from "../Route/scraperRoutes.js"
 import cron from "node-cron";
 import axios from "axios";
-
+import { findMatchingUsersAndSendEmails } from "./mailer.js";
 dotenv.config();
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -38,7 +38,16 @@ app.use(express.static(path.join(__dirname, "public")));
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Server is running!', timestamp: new Date().toISOString() });
 });
-
+// mail test route
+app.get("/test-email", async (req, res) => {
+  try {
+    await findMatchingUsersAndSendEmails();
+    res.send("Email sent! Check your inbox.");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Email sending failed.");
+  }
+});
 // ---------- MySQL connection pool ----------
 async function createPool() {
   try {
@@ -286,5 +295,6 @@ cron.schedule("*/30 * * * *", async () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log(`Static files from: ${path.join(__dirname, "public")}`);
     console.log(`Test API: http://localhost:${PORT}/api/test`);
+    console.log (`Test email: http://localhost:${PORT}/test-email`)
   });
 }
