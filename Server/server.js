@@ -56,10 +56,10 @@ async function createPool() {
 
     // Test connection
     await pool.getConnection();
-    console.log('✅ MySQL connection successful');
+    console.log('MySQL connection successful');
     return pool;
   } catch (error) {
-    console.error('❌ MySQL connection failed:', error);
+    console.error('MySQL connection failed:', error);
     process.exit(1);
   }
 }
