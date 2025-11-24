@@ -303,9 +303,17 @@ cron.schedule("*/30 * * * *", async () => {
   }
 });
 
-cron.schedule("0 */2 * * *", async () => {
-  await findMatchingUsersAndSendEmails();
+cron.schedule("*/30 * * * *", async () => {
+   console.log("Auto-email sender triggered...");
+
+  try {
+    await findMatchingUsersAndSendEmails();
+    console.log("Auto email sending completed.");
+  } catch (err) {
+    console.error("Auto email sending error:", err.message);
+  }
 });
+
 
 
   // Start server
