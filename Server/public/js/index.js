@@ -1,8 +1,15 @@
+const PUBLIC_PAGES = [
+    "/",
+    "/login.html",
+    "/register.html"
+];
 // Initialize the app when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     initializeApp();
     loadJobs();
-    
+    if (window.location.pathname !== '/') {
+        await checkAuth();
+    }
     // Set up search functionality
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
@@ -16,7 +23,6 @@ function initializeApp() {
     initializeFilterTags();
     initializeBottomNav();
     initializeJobCards();
-    // checkAuth(); // Uncomment when authentication is ready
 }
 
 // Load jobs from API
@@ -271,51 +277,88 @@ function initializeJobCards() {
 }
 
 // Logout functionality
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-    logoutBtn.addEventListener('click', async function() {
-        try {
-            const response = await fetch('/api/logout', {
-                method: 'POST',
-                credentials: 'include'
-            });
-            
-            if (response.ok) {
-                window.location.href = '/';
+document.addEventListener("DOMContentLoaded", () => {
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            if (!confirm("Are you sure you want to logout?")) return;
+
+            try {
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    // Clear local data
+                    localStorage.removeItem('bookmarkedJobs');
+
+                    // Redirect to login page
+                    window.location.replace('/login.html');
+                } else {
+                    alert("Logout failed. Server returned an error.");
+                }
+
+            } catch (error) {
+                console.error('Logout failed:', error);
+                alert("Network error during logout.");
             }
-        } catch (error) {
-            console.error('Logout failed:', error);
-            alert('Logout failed. Please try again.');
-        }
-    });
-}
+        });
+    }
+});
+
 
 // Authentication check (uncomment when ready)
-// async function checkAuth() {
-//     try {
-//         const response = await fetch('/api/me', {
-//             method: 'GET',
-//             credentials: 'include'
-//         });
-//         const data = await response.json();
-//
-//         if (!data.loggedIn) {
-//             window.location.href = '/';
-//             return false;
-//         }
-//
-//         const userGreeting = document.getElementById('userGreeting');
-//         userGreeting.innerHTML = `
-//             <h1 class="mb-0">Hello ${data.user.username || data.user.email}!</h1>
-//             <p class="mb-0 text-white-50">Find your dream OJT</p>
-//         `;
-//         return true;
-//     } catch (error) {
-//         console.error('Authentication check failed:', error);
-//         window.location.href = '/';
-//         return false;
-//     }
-// }
+async function checkAuth() {
+    try {
+        const response = await fetch('/api/me', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        const data = await response.json();
+
+        const currentPath = window.location.pathname;
+        const isPublic = PUBLIC_PAGES.includes(currentPath);
+
+        // If user is NOT logged in and the page is protected → redirect
+        if (!data.loggedIn && !isPublic) {
+            console.warn('Access denied. Redirecting to login...');
+            window.location.replace('/login.html');
+            return false;
+        }
+
+        // If user IS logged in and is on a public page (like login) → redirect to dashboard
+        if (data.loggedIn && ['/login.html', '/register.html'].includes(currentPath)) {
+            console.log('Already logged in → redirecting to dashboard');
+            window.location.replace('/dashboard.html');
+            return true;
+        }
+
+        // Update UI if logged in
+        if (data.loggedIn) {
+            const userGreeting = document.getElementById('userGreeting');
+            if (userGreeting) {
+                userGreeting.innerHTML = `
+                    <h1 class="mb-0">Hello ${data.user.username || data.user.email}!</h1>
+                    <p class="mb-0 text-white-50">Find your dream OJT</p>
+                `;
+            }
+        }
+
+        return data.loggedIn;
+
+    } catch (error) {
+        console.error('Authentication check failed:', error);
+        // Fail-safe: if on protected page & API fails → redirect
+        const currentPath = window.location.pathname;
+        if (!PUBLIC_PAGES.includes(currentPath)) {
+            window.location.replace('/login.html');
+        }
+        return false;
+    }
+}
+
 
 // Utility function: Debounce
 function debounce(func, wait) {

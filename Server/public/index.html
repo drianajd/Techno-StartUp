@@ -87,7 +87,7 @@
     </div>
   </section>
 
-  <section class="job-list">
+  <!-- <section class="job-list">
     <a href="jobdesc.html" class="job-item">
       <img src="res/Google__G__logo.svg.webp" alt="Google Logo">
       <div>
@@ -123,7 +123,7 @@
         <p class="allowance">Allowance Provided</p>
       </div>
     </div>
-  </section>
+  </section> -->
 
   <!-- 🔹 Dynamic Job Feed Section -->
 <section class="job-list" id="jobContainer">
@@ -131,7 +131,7 @@
 </section>
 
 <p id="updateTime" style="text-align:center; font-size: 12px; color: gray; margin-top: 8px;">
-  🔄 Last updated: waiting...
+  Last updated: waiting...
 </p>
 
   <footer>
@@ -144,34 +144,6 @@
 
   <script>
     loadJobs();
-    // Check authentication
-    // async function checkAuth() {
-    //   try {
-    //     const response = await fetch('/api/me', {
-    //       method: 'GET',
-    //       credentials: 'include'
-    //     });
-    //     const data = await response.json();
-
-    //     // if (!data.loggedIn) {
-    //     //   window.location.href = '/';
-    //     //   return false;
-    //     // }
-
-    //     const userGreeting = document.getElementById('userGreeting');
-    //     userGreeting.innerHTML = `
-    //       <h1>Hello ${data.user.username || data.user.email}!</h1>
-    //       <p>Find your dream OJT</p>
-    //     `;
-    //     return true;
-    //   } catch (error) {
-    //     console.error('Authentication check failed:', error);
-    //     window.location.href = '/';
-    //     return false;
-    //   }
-    // }
-
-    // Logout functionality
 async function loadJobs() {
     const container = document.getElementById('jobContainer');
     const updateTime = document.getElementById('updateTime');
@@ -226,6 +198,6 @@ async function loadJobs() {
   setInterval(loadJobs, 5 * 60 * 1000);
   
 </script>
-<script src="../../js/index.js"></script>
+<script src="./js/index.js"></script>
 </body>
 </html>
