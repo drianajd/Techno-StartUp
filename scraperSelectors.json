@@ -1,0 +1,23 @@
+{
+  "indeed": {
+    "jobCard": "div",
+    "title": "h2, h3",
+    "company": "span, div",
+    "link": "a",
+    "skills": "li, div"
+  },
+  "glassdoor": {
+    "jobCard": ".JobCard_jobCardLeftContent__cHcGe",
+    "title": ".JobCard_jobTitle__GLyJ1",
+    "company": ".EmployerProfile_compactEmployerName__9MGcV",
+    "link": "a.JobCard_jobTitle__GLyJ1",
+    "skills": ".JobCard_jobDescriptionSnippet__l1tnl"
+  },
+  "linkedin": {
+    "jobCard": ".base-card",
+    "title": ".base-search-card__title",
+    "company": ".base-search-card__subtitle",
+    "link": "a.base-card__full-link",
+    "skills": ".job-card-container__description"
+  }
+}

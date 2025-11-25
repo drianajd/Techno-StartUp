@@ -1,0 +1,23 @@
+{
+  "glassdoor": {
+    "jobCard": "html",
+    "title": "h2, h3, h4, span",
+    "company": "span, div",
+    "link": "a",
+    "description": "p, div, span"
+  },
+  "linkedin": {
+    "jobCard": "html",
+    "title": "",
+    "company": "",
+    "link": "",
+    "description": ""
+  },
+  "indeed": {
+    "jobCard": "html",
+    "title": "h2, h3, h4, span",
+    "company": "span, div",
+    "link": "a",
+    "description": "p, div, span"
+  }
+}
