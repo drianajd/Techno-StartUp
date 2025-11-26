@@ -50,12 +50,14 @@ echo ==================================
 echo.
 echo Installing Playwright browsers...
 
-%PIPCMD% install playwright
+REM this may fail depending on environment, so we run dedicated installer next
+echo.
+echo Running Playwright browser installer...
+call install_playwright_browsers.bat
 
-%PIPCMD% run playwright install
-
-py -m playwright install
-
+echo.
+echo ✅ All installations complete!
+pause
 echo.
 echo ✅ All installations complete!
 pause
