@@ -51,7 +51,8 @@ echo.
 echo Installing Playwright browsers...
 
 %PIPCMD% install playwright
-python -m playwright install
+
+%PIPCMD: -m pip= -m playwright% install
 
 echo.
 echo ✅ All installations complete!
