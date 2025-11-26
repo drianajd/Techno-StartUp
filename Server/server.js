@@ -1,4 +1,4 @@
-// server.js
+// Server/server.js
 import express from "express";
 import dotenv from "dotenv";
 import mysql from "mysql2/promise";
@@ -9,13 +9,22 @@ import bodyParser from "body-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
-import scraperRoutes from "../Route/scraperRoutes.js"
 import cron from "node-cron";
-import axios from "axios";
+import { exec } from "child_process";
 import { findMatchingUsersAndSendEmails } from "./mailer.js";
+
 dotenv.config();
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// --------------------- Middleware ---------------------
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5500'],
+  credentials: true
+}));
+app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, "public")));
 
 // Debug middleware
 app.use((req, res, next) => {
@@ -23,22 +32,118 @@ app.use((req, res, next) => {
   next();
 });
 
+// --------------------- MySQL connection ---------------------
+let pool;
+async function createPool() {
+  try {
+    pool = mysql.createPool({
+      host: process.env.DB_HOST || "localhost",
+      user: process.env.DB_USER || "root",
+      password: process.env.DB_PASS || "",
+      database: process.env.DB_NAME || "node_app",
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
+    });
+    await pool.getConnection();
+    console.log("MySQL connection successful");
+  } catch (err) {
+    console.error("MySQL connection failed:", err);
+    process.exit(1);
+  }
+}
 
-// CORS - More permissive for development
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5500'],
-  credentials: true
-}));
+// --------------------- Session store ---------------------
+function initSession() {
+  const MySQLStore = MySQLStoreFactory(session);
+  const sessionStore = new MySQLStore({
+    checkExpirationInterval: 900000,
+    expiration: 86400000,
+    createDatabaseTable: true
+  }, pool);
 
-app.use(bodyParser.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "public")));
+  app.use(session({
+    key: "session_cookie_name",
+    secret: process.env.SESSION_SECRET || "change_this_secret",
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false,
+      maxAge: 1000 * 60 * 60 * 24,
+      sameSite: 'lax'
+    }
+  }));
+}
 
-// Test route
-app.get('/api/test', (req, res) => {
+// --------------------- Run JobSpy Scraper ---------------------
+export async function runScraper(pool) {
+  const scriptPath = path.join(__dirname, "../Route/jobspy_scraper.py");
+  const pythonCmd = "py -3.11"; // adjust if needed
+
+  console.log(`Running JobSpy scraper: ${scriptPath}`);
+
+  return new Promise((resolve, reject) => {
+    exec(`${pythonCmd} "${scriptPath}"`, { maxBuffer: 1024 * 1024 * 10 }, async (error, stdout, stderr) => {
+      if (error) {
+        console.error("JobSpy scraper error:", error);
+        return reject(error);
+      }
+
+      if (stderr) console.error("JobSpy scraper stderr:", stderr);
+
+      let conn;
+      try {
+        const jobs = JSON.parse(stdout);
+        console.log(`Total jobs scraped: ${jobs.length}`);
+
+        conn = await pool.getConnection();
+        let inserted = 0;
+
+        for (const job of jobs) {
+          if (!job.url) continue; // skip if no URL
+
+          // check for duplicate
+          const [rows] = await conn.query("SELECT id FROM internships WHERE link = ?", [job.url]);
+          if (rows.length > 0) continue;
+
+          await conn.query(
+            `INSERT INTO internships (company, position, link, qualifications, site)
+             VALUES (?, ?, ?, ?, ?)`,
+            [
+              job.company || "",
+              job.title || "",
+              job.url,
+              job.description || "",
+              job.site || ""
+            ]
+          );
+          inserted++;
+
+          // Debug log for inserted job
+          console.log(`Inserted job: ${job.title || "N/A"} at ${job.company || "N/A"} (${job.site || "N/A"})`);
+          console.log(`Link: ${job.url}`);
+          console.log(`Description: ${job.description?.substring(0, 100)}...`);
+        }
+
+        console.log(`Inserted ${inserted} new jobs into the database.`);
+        resolve(inserted);
+      } catch (err) {
+        console.error("Error parsing scraper output or inserting jobs:", err);
+        reject(err);
+      } finally {
+        if (conn) conn.release();
+      }
+    });
+  });
+}
+
+// --------------------- Routes ---------------------
+app.get("/api/test", (req, res) => {
   res.json({ message: 'Server is running!', timestamp: new Date().toISOString() });
 });
-// mail test route
+
 app.get("/test-email", async (req, res) => {
   try {
     await findMatchingUsersAndSendEmails();
@@ -48,264 +153,130 @@ app.get("/test-email", async (req, res) => {
     res.status(500).send("Email sending failed.");
   }
 });
-// ---------- MySQL connection pool ----------
-async function createPool() {
+
+// Trigger JobSpy scraping manually
+app.get("/api/jobs", async (req, res) => {
   try {
-    const pool = mysql.createPool({
-      host: process.env.DB_HOST || "localhost",
-      user: process.env.DB_USER || "root",
-      password: process.env.DB_PASS || "",
-      database: process.env.DB_NAME || "node_app",
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-      // Debug connection
-      trace: false
-    });
-
-    // Test connection
-    await pool.getConnection();
-    console.log('MySQL connection successful');
-    return pool;
-  } catch (error) {
-    console.error('MySQL connection failed:', error);
-    process.exit(1);
+    const inserted = await runScraper();
+    res.json({ success: true, inserted });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
-}
-
-// Initialize pool
-let pool;
-createPool().then(p => {
-  pool = p;
-  initializeServer();
-}).catch(err => {
-  console.error('Failed to initialize database:', err);
-  process.exit(1);
 });
 
-function initializeServer() {
-  // ---------- Session store ----------
-  const MySQLStore = MySQLStoreFactory(session);
-  const sessionStore = new MySQLStore({
-    checkExpirationInterval: 900000,
-    expiration: 86400000,
-    createDatabaseTable: true
-  }, pool);
+// Serve static pages
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
-  // Session middleware
-  app.use(session({
-    key: "session_cookie_name",
-    secret: process.env.SESSION_SECRET || "change_this_secret",
-    store: sessionStore,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: false, // Set to true only with HTTPS
-      maxAge: 1000 * 60 * 60 * 24,
-      sameSite: 'lax'
-    }
-  }));
-  // ---------- Scraper Route ----------
-  app.use("/api", scraperRoutes);
+app.get("/dashboard.html", (req, res) => {
+  if (!req.session.userId) return res.redirect("/");
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+});
 
+// --------------------- Auth: Register ---------------------
+app.post("/api/register", async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    if (!username || !email || !password) return res.status(400).json({ error: "Missing fields" });
 
-  // Serve static pages
-  app.get("/", (req, res) => {
-    console.log('Serving index.html');
-    res.sendFile(path.join(__dirname, "public", "index.html"));
-  });
+    const [existingRows] = await pool.query(
+      "SELECT id FROM users WHERE username = ? OR email = ?", [username, email]
+    );
 
-  app.get("/dashboard.html", (req, res) => {
-    if (!req.session.userId) {
-      console.log('Unauthorized access to dashboard, redirecting to login');
-      return res.redirect("/");
-    }
-    res.sendFile(path.join(__dirname, "public", "dashboard.html"));
-  });
+    if (existingRows.length > 0) return res.status(409).json({ error: "Username or email already exists" });
 
-  // ---------- Register ----------
-  app.post("/api/register", async (req, res) => {
-    console.log('Register attempt:', req.body);
-    try {
-      const { username, email, password } = req.body;
-      
-      if (!username || !email || !password) {
-        console.log('Missing fields in register');
-        return res.status(400).json({ error: "Missing fields" });
-      }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const [result] = await pool.query(
+      "INSERT INTO users (username, email, password, created_at) VALUES (?, ?, ?, NOW())", 
+      [username, email, hashedPassword]
+    );
 
-      const [existingRows] = await pool.query(
-        "SELECT id FROM users WHERE username = ? OR email = ?", 
-        [username, email]
-      );
-      
-      if (existingRows.length > 0) {
-        console.log('User already exists');
-        return res.status(409).json({ error: "Username or email already exists" });
-      }
+    res.json({ success: true, id: result.insertId });
+  } catch (err) {
+    console.error("Registration error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const [result] = await pool.query(
-        "INSERT INTO users (username, email, password, created_at) VALUES (?, ?, ?, NOW())", 
-        [username, email, hashedPassword]
-      );
-      
-      console.log('User registered successfully:', result.insertId);
-      return res.json({ success: true, id: result.insertId });
-    } catch (err) {
-      console.error("Registration error:", err);
-      return res.status(500).json({ error: "Server error" });
-    }
-  });
+// --------------------- Auth: Login ---------------------
+app.post("/api/login", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: "Missing fields" });
 
-  // ---------- Login ----------
-  app.post("/api/login", async (req, res) => {
-    console.log('Login attempt:', req.body);
-    
-    try {
-      const { username, password } = req.body;
-      
-      if (!username || !password) {
-        console.log('Missing login fields');
-        return res.status(400).json({ error: "Missing fields" });
-      }
+    const [rows] = await pool.query(
+      "SELECT id, username, email, password FROM users WHERE username = ? OR email = ?", 
+      [username, username]
+    );
 
-      const [rows] = await pool.query(
-        "SELECT id, username, email, password FROM users WHERE username = ? OR email = ?", 
-        [username, username]
-      );
-      
-      console.log(`Found ${rows.length} users matching: ${username}`);
-      
-      if (rows.length === 0) {
-        console.log('No user found');
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
+    if (rows.length === 0) return res.status(401).json({ error: "Invalid credentials" });
 
-      const user = rows[0];
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      
-      console.log('Password valid:', isPasswordValid);
-      
-      if (!isPasswordValid) {
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
+    const user = rows[0];
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) return res.status(401).json({ error: "Invalid credentials" });
 
-      // Regenerate session
-      req.session.regenerate((err) => {
-        if (err) {
-          console.error("Session regeneration error:", err);
-          return res.status(500).json({ error: "Server error" });
-        }
-
-        req.session.userId = user.id;
-        req.session.username = user.username;
-        req.session.email = user.email;
-        
-        console.log('Login successful, session created for user:', user.id);
-        
-        return res.json({ 
-          success: true, 
-          message: "Logged in successfully",
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email
-          }
-        });
-      });
-    } catch (err) {
-      console.error("Login error:", err);
-      return res.status(500).json({ error: "Server error" });
-    }
-  });
-
-  // ---------- Get current user ----------
-  app.get("/api/me", async (req, res) => {
-    console.log('Session check:', req.session.userId ? 'Authenticated' : 'Not authenticated');
-    
-    try {
-      if (!req.session.userId) {
-        return res.json({ loggedIn: false });
-      }
-      
-      const [rows] = await pool.query(
-        "SELECT id, username, email, created_at FROM users WHERE id = ?", 
-        [req.session.userId]
-      );
-      
-      if (rows.length === 0) {
-        req.session.destroy(() => {});
-        return res.json({ loggedIn: false });
-      }
-      
-      return res.json({ loggedIn: true, user: rows[0] });
-    } catch (err) {
-      console.error("Get user error:", err);
-      return res.status(500).json({ error: "Server error" });
-    }
-  });
-
-  // ---------- Logout ----------
-  app.post("/api/logout", (req, res) => {
-    console.log('Logout requested');
-    req.session.destroy((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({ error: "Logout failed" });
-      }
-      res.clearCookie("session_cookie_name");
-      console.log('Logout successful');
-      return res.json({ success: true });
+    req.session.regenerate((err) => {
+      if (err) return res.status(500).json({ error: "Server error" });
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      req.session.email = user.email;
+      res.json({ success: true, message: "Logged in successfully", user: { id: user.id, username: user.username, email: user.email } });
     });
-  });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
-  // Error handling middleware
-  app.use((err, req, res, next) => {
-    console.error('Unhandled error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  });
+// --------------------- Auth: Get Current User ---------------------
+app.get("/api/me", async (req, res) => {
+  try {
+    if (!req.session.userId) return res.json({ loggedIn: false });
+    const [rows] = await pool.query("SELECT id, username, email, created_at FROM users WHERE id = ?", [req.session.userId]);
+    if (rows.length === 0) {
+      req.session.destroy(() => {});
+      return res.json({ loggedIn: false });
+    }
+    res.json({ loggedIn: true, user: rows[0] });
+  } catch (err) {
+    console.error("Get user error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
-  // 404 handler
-  app.use((req, res) => {
-  console.log('404:', req.originalUrl);
+// --------------------- Auth: Logout ---------------------
+app.post("/api/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) return res.status(500).json({ error: "Logout failed" });
+    res.clearCookie("session_cookie_name");
+    res.json({ success: true });
+  });
+});
+
+// --------------------- Error & 404 ---------------------
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+app.use((req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
-async function runScraper() {
-  console.log("Initial job scraping...");
-  try {
-    const port = process.env.PORT || 5500;
-    const host = "localhost";
-    await axios.get(`http://${host}:${port}/api/jobs`);
-    console.log("Initial scraping completed.");
-  } catch (err) {
-    console.error("Error:", err.message);
-  }
-}
-
-// Run once immediately
-runScraper();
-
-// --------- AUTO SCRAPER (EVERY 30 MINUTES) ---------
+// --------------------- Cron Jobs ---------------------
 cron.schedule("*/30 * * * *", async () => {
-  console.log("Scraping jobs automatically...");
-
+  console.log("Auto scraping jobs triggered...");
   try {
-    // Call your scraper route internally
-    const port = process.env.PORT || 5500;
-    const host = "localhost";
-    await axios.get(`http://${host}:${port}/api/jobs`);
-    console.log("Job scraping completed.");
+    const output = await runJobSpyScraper();
+    console.log("Auto scraping completed:\n", output);
   } catch (err) {
-    console.error("Error:", err.message);
+    console.error("Auto scraping error:", err.message);
   }
 });
 
 cron.schedule("*/30 * * * *", async () => {
-   console.log("Auto-email sender triggered...");
-
+  console.log("Auto-email sender triggered...");
   try {
     await findMatchingUsersAndSendEmails();
     console.log("Auto email sending completed.");
@@ -314,14 +285,20 @@ cron.schedule("*/30 * * * *", async () => {
   }
 });
 
+// --------------------- Initialize ---------------------
+(async () => {
+  await createPool();
+  initSession();
 
-
-  // Start server
   const PORT = process.env.PORT || 5500;
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    // console.log(`Static files from: ${path.join(__dirname, "public")}`);
     console.log(`Test API: http://localhost:${PORT}/api/test`);
-    console.log (`Test email: http://localhost:${PORT}/test-email`)
+    console.log(`Test email: http://localhost:${PORT}/test-email`);
+    console.log(`Trigger scraper manually: http://localhost:${PORT}/api/jobs`);
+
+    runScraper().catch(err => {
+    console.error("Initial scraper run failed:", err);
   });
-}
+  });
+})();
