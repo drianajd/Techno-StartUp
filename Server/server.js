@@ -82,7 +82,7 @@ export async function runScraper() {
   const scriptPath = path.join(__dirname, "../Route/scraper.py");
   const pythonCmd = "py -3.11";
 
-  console.log(`Running scraper: ${scriptPath}`);
+  console.log(`Running scraper...`);
 
   return new Promise((resolve, reject) => {
     exec(`${pythonCmd} "${scriptPath}"`, { maxBuffer: 1024 * 1024 * 10 }, async (error, stdout, stderr) => {
