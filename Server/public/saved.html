@@ -314,50 +314,7 @@
 
         <!-- Job List -->
         <div class="job-list" id="savedJobsList">
-            <!-- Sample Saved Jobs -->
-            <a href="jobdesc.html" class="job-item">
-                <img src="https://logo.clearbit.com/google.com" alt="Google Logo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2991/2991148.png'">
-                <div>
-                    <h3>UI/UX Designer</h3>
-                    <p>Google • California, USA</p>
-                    <p class="allowance">Allowance Provided</p>
-                    <p class="slots">10 SLOTS REMAINING</p>
-                </div>
-                <button class="bookmark-btn" onclick="removeSaved(event)">⛉</button>
-            </a>
-
-            <a href="jobdesc.html" class="job-item">
-                <img src="https://logo.clearbit.com/facebook.com" alt="Facebook Logo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2991/2991148.png'">
-                <div>
-                    <h3>Finance Intern (OJT)</h3>
-                    <p>Facebook • Manila, PH</p>
-                    <p class="allowance">Allowance Provided</p>
-                    <p class="slots">5 SLOTS REMAINING</p>
-                </div>
-                <button class="bookmark-btn" onclick="removeSaved(event)">⛉</button>
-            </a>
-
-            <a href="jobdesc.html" class="job-item">
-                <img src="https://logo.clearbit.com/dribbble.com" alt="Dribbble Logo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2991/2991148.png'">
-                <div>
-                    <h3>Lead Designer</h3>
-                    <p>Dribbble • California, USA</p>
-                    <p class="allowance">Allowance Provided</p>
-                    <p class="slots">5 SLOTS REMAINING</p>
-                </div>
-                <button class="bookmark-btn" onclick="removeSaved(event)">⛉</button>
-            </a>
-
-            <a href="jobdesc.html" class="job-item">
-                <img src="https://logo.clearbit.com/twitter.com" alt="Twitter Logo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2991/2991148.png'">
-                <div>
-                    <h3>UX Researcher</h3>
-                    <p>Twitter • California, USA</p>
-                    <p class="allowance">Allowance Provided</p>
-                    <p class="slots">1 SLOT REMAINING</p>
-                </div>
-                <button class="bookmark-btn" onclick="removeSaved(event)">⛉</button>
-            </a>
+            <!-- Bookmarked jobs will be rendered here -->
         </div>
 
         <!-- Empty State (hidden by default) -->
@@ -379,55 +336,196 @@
     </footer>
 
     <script>
-        function removeSaved(event) {
-            event.preventDefault();
-            event.stopPropagation();
-            
-            const jobItem = event.target.closest('.job-item');
-            jobItem.style.transition = 'transform 0.3s, opacity 0.3s';
-            jobItem.style.transform = 'translateX(100%)';
-            jobItem.style.opacity = '0';
-            
-            setTimeout(() => {
-                jobItem.remove();
-                checkIfEmpty();
-            }, 300);
-        }
+        async function fetchBookmarkedJobs() {
+            const list = document.getElementById('savedJobsList');
+            const emptyState = document.getElementById('emptyState');
+            list.innerHTML = '<p style="text-align:center; color:#666; padding:20px">Loading saved jobs...</p>';
 
-        function deleteAll() {
-            if (confirm('Are you sure you want to remove all saved jobs?')) {
-                const jobsList = document.getElementById('savedJobsList');
-                const jobItems = jobsList.querySelectorAll('.job-item');
-                
-                jobItems.forEach((item, index) => {
-                    setTimeout(() => {
-                        item.style.transition = 'transform 0.3s, opacity 0.3s';
-                        item.style.transform = 'translateX(100%)';
-                        item.style.opacity = '0';
-                        
-                        setTimeout(() => {
-                            item.remove();
-                            if (index === jobItems.length - 1) {
-                                checkIfEmpty();
-                            }
-                        }, 300);
-                    }, index * 100);
+            try {
+                const res = await fetch('/api/bookmarks/jobs', { credentials: 'include' });
+                if (!res.ok) {
+                    // If not logged in or no bookmarks, fall back to localStorage
+                    console.warn('Could not load bookmarks from server (status ' + res.status + ')');
+                    renderFromLocalStorage();
+                    return;
+                }
+
+                const data = await res.json();
+                const jobs = data.jobs || [];
+
+                if (jobs.length === 0) {
+                    list.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                list.innerHTML = '';
+                jobs.forEach(job => {
+                    const item = createJobItem(job);
+                    list.appendChild(item);
                 });
+
+            } catch (err) {
+                console.error('Error fetching bookmarked jobs:', err);
+                renderFromLocalStorage();
             }
         }
+
+        function createJobItem(job) {
+            const a = document.createElement('a');
+            a.className = 'job-item';
+            a.href = job.link || '#';
+            a.target = '_blank';
+
+            const img = document.createElement('img');
+            const companyDomain = (job.company || '').split(' ')[0].toLowerCase();
+            img.src = job.link ? `https://logo.clearbit.com/${companyDomain}.com` : 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png';
+            img.onerror = function() { this.src = 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png'; };
+            a.appendChild(img);
+
+            const div = document.createElement('div');
+            const h3 = document.createElement('h3');
+            h3.textContent = job.title || job.position || 'Untitled';
+            const p = document.createElement('p');
+            p.textContent = `${job.company || 'Unknown'} • ${job.site || ''}`;
+            div.appendChild(h3);
+            div.appendChild(p);
+            a.appendChild(div);
+
+            const btn = document.createElement('button');
+            btn.className = 'bookmark-btn';
+            btn.title = 'Remove bookmark';
+            btn.innerText = '⛉';
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                await toggleBookmarkAndRemove(job.id, a);
+            });
+            a.appendChild(btn);
+
+            return a;
+        }
+
+        async function toggleBookmarkAndRemove(internshipId, element) {
+            try {
+                const res = await fetch('/api/bookmarks/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ internship_id: internshipId })
+                });
+
+                if (res.ok) {
+                    // animate removal
+                    element.style.transition = 'transform 0.3s, opacity 0.3s';
+                    element.style.transform = 'translateX(100%)';
+                    element.style.opacity = '0';
+                    setTimeout(() => {
+                        element.remove();
+                        checkIfEmpty();
+                    }, 300);
+                    // remove from localStorage cached bookmarks too
+                    try {
+                        let local = JSON.parse(localStorage.getItem('bookmarkedJobs') || '[]');
+                        local = local.filter(id => id !== String(internshipId) && id !== internshipId);
+                        localStorage.setItem('bookmarkedJobs', JSON.stringify(local));
+                    } catch (err) { console.warn('localStorage update failed', err); }
+                } else if (res.status === 401) {
+                    alert('Please login to manage bookmarks');
+                } else {
+                    const data = await res.json();
+                    console.error('Failed to toggle bookmark:', data.error);
+                    alert('Failed to update bookmark');
+                }
+            } catch (err) {
+                console.error('Error toggling bookmark:', err);
+                alert('Network error while updating bookmark');
+            }
+        }
+
+        function renderFromLocalStorage() {
+            const list = document.getElementById('savedJobsList');
+            const emptyState = document.getElementById('emptyState');
+            const local = JSON.parse(localStorage.getItem('bookmarkedJobs') || '[]');
+            if (local.length === 0) {
+                list.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            list.innerHTML = '';
+            // local contains job IDs — try match to internships currently loaded via /api/jobs/all
+            fetch('/api/jobs/all')
+                .then(r => r.json())
+                .then(data => {
+                    const jobs = data.jobs || [];
+                    const matched = jobs.filter(j => local.includes(String(j.id)));
+                    if (matched.length === 0) {
+                        emptyState.style.display = 'block';
+                        return;
+                    }
+                    matched.forEach(job => list.appendChild(createJobItem(job)));
+                }).catch(err => {
+                    console.error('Error loading jobs to match local bookmarks:', err);
+                    emptyState.style.display = 'block';
+                });
+        }
+
+            // Clear all bookmarks (server + localStorage) and update UI
+            async function deleteAll() {
+                if (!confirm('Are you sure you want to remove all saved jobs?')) return;
+
+                const list = document.getElementById('savedJobsList');
+                const items = Array.from(list.children);
+
+                try {
+                    const res = await fetch('/api/bookmarks/clear', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+
+                    if (res.ok) {
+                        // clear local storage and animate removal
+                        try { localStorage.setItem('bookmarkedJobs', JSON.stringify([])); } catch (e) {}
+
+                        items.forEach((el, idx) => {
+                            setTimeout(() => {
+                                el.style.transition = 'transform 0.3s, opacity 0.3s';
+                                el.style.transform = 'translateX(100%)';
+                                el.style.opacity = '0';
+                                setTimeout(() => el.remove(), 300);
+                            }, idx * 80);
+                        });
+
+                        setTimeout(() => checkIfEmpty(), items.length * 90 + 350);
+                    } else if (res.status === 401) {
+                        // not logged in — just clear localStorage
+                        try { localStorage.setItem('bookmarkedJobs', JSON.stringify([])); } catch (e) {}
+                        items.forEach(el => el.remove());
+                        checkIfEmpty();
+                        alert('Cleared local bookmarks. Log in to clear server bookmarks.');
+                    } else {
+                        const data = await res.json();
+                        console.error('Clear all failed:', data.error);
+                        alert('Failed to clear bookmarks');
+                    }
+                } catch (err) {
+                    console.error('Error clearing bookmarks:', err);
+                    alert('Network error while clearing bookmarks');
+                }
+            }
 
         function checkIfEmpty() {
             const jobsList = document.getElementById('savedJobsList');
             const emptyState = document.getElementById('emptyState');
-            
-            if (jobsList.children.length === 0) {
+            if (!jobsList || jobsList.children.length === 0) {
                 jobsList.style.display = 'none';
                 emptyState.style.display = 'block';
             }
         }
 
-        // Check on load
-        checkIfEmpty();
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchBookmarkedJobs();
+        });
     </script>
 </body>
 </html>

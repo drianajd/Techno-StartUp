@@ -509,3 +509,32 @@ function getColorForName(name) {
 
 // Initialize smooth scroll
 initSmoothScroll();
+
+// Listen for localStorage changes from other tabs/windows and sync heart states
+window.addEventListener('storage', (e) => {
+    try {
+        if (e.key !== 'bookmarkedJobs') return;
+
+        const newBookmarks = JSON.parse(e.newValue || '[]');
+
+        // Update all heart buttons to match the new storage state
+        document.querySelectorAll('.heart-bookmark-btn').forEach(btn => {
+            const jobId = btn.dataset.jobId;
+            const icon = btn.querySelector('i');
+
+            if (!jobId || !icon) return;
+
+            if (newBookmarks.includes(jobId)) {
+                btn.classList.add('bookmarked');
+                icon.classList.remove('bi-heart');
+                icon.classList.add('bi-heart-fill');
+            } else {
+                btn.classList.remove('bookmarked');
+                icon.classList.remove('bi-heart-fill');
+                icon.classList.add('bi-heart');
+            }
+        });
+    } catch (err) {
+        console.error('Error syncing bookmarks from storage event:', err);
+    }
+});

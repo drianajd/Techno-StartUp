@@ -370,6 +370,27 @@ app.get("/api/bookmarks/jobs", async (req, res) => {
   }
 });
 
+// --------------------- Bookmarks: Clear All Bookmarks for User ---------------------
+app.post("/api/bookmarks/clear", async (req, res) => {
+  try {
+    // Require user to be logged in
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "User not logged in" });
+    }
+
+    const userId = req.session.userId;
+
+    // Delete all bookmarks for this user
+    await pool.query("DELETE FROM bookmarks WHERE user_id = ?", [userId]);
+
+    console.log(`Cleared all bookmarks for user ${userId}`);
+    res.json({ success: true, message: "All bookmarks cleared" });
+  } catch (err) {
+    console.error("Clear bookmarks error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // --------------------- Error & 404 ---------------------
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
