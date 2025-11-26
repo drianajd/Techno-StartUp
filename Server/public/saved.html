@@ -273,6 +273,110 @@
             font-size: 28px;
         }
 
+        /* Animated Alert Box */
+        .animated-alert {
+            margin-bottom: 16px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            background: #eaf6ff;
+            color: #2563eb;
+            border: 1px solid #b6e0fe;
+            position: relative;
+            box-shadow: 0 4px 16px rgba(102,126,234,0.08);
+            opacity: 0;
+            transform: translateY(-20px) scale(0.98);
+            pointer-events: none;
+            transition: opacity 0.35s cubic-bezier(.4,2,.6,1), transform 0.35s cubic-bezier(.4,2,.6,1);
+            z-index: 10;
+        }
+        .animated-alert.show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+        .animated-alert button {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: inherit;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .animated-alert button:hover {
+            opacity: 1;
+        }
+
+        /* Confirmation Dialog */
+        .confirm-dialog {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s cubic-bezier(.4,2,.6,1);
+        }
+        .confirm-dialog.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .confirm-dialog-content {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            padding: 32px 24px 20px 24px;
+            min-width: 280px;
+            max-width: 90vw;
+            text-align: center;
+            animation: popIn 0.32s cubic-bezier(.4,2,.6,1);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.92); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .confirm-dialog-message {
+            font-size: 18px;
+            color: #222;
+            margin-bottom: 22px;
+        }
+        .confirm-dialog-actions {
+            display: flex;
+            gap: 18px;
+            justify-content: center;
+        }
+        .confirm-btn {
+            padding: 8px 28px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .confirm-yes {
+            background: #2563eb;
+            color: #fff;
+        }
+        .confirm-yes:hover {
+            background: #1746a2;
+        }
+        .confirm-no {
+            background: #f3f4f6;
+            color: #222;
+        }
+        .confirm-no:hover {
+            background: #e5e7eb;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header-bg {
@@ -312,6 +416,12 @@
             <a href="index.html">Browse More</a>
         </div>
 
+        <!-- Alert Box -->
+        <div id="alertBox" class="animated-alert">
+            <span id="alertMsg"></span>
+            <button id="alertCloseBtn" type="button">&times;</button>
+        </div>
+        
         <!-- Job List -->
         <div class="job-list" id="savedJobsList">
             <!-- Bookmarked jobs will be rendered here -->
@@ -334,6 +444,17 @@
         <a href="message.html" class="nav-icon">💬</a>
         <a href="saved.html" class="nav-icon active">⛉</a>
     </footer>
+
+    <!-- Confirmation Dialog -->
+    <div id="confirmDialog" class="confirm-dialog">
+        <div class="confirm-dialog-content">
+            <div class="confirm-dialog-message">Are you sure you want to remove all saved jobs?</div>
+            <div class="confirm-dialog-actions">
+                <button id="confirmYesBtn" class="confirm-btn confirm-yes">Yes</button>
+                <button id="confirmNoBtn" class="confirm-btn confirm-no">No</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         async function fetchBookmarkedJobs() {
@@ -470,12 +591,52 @@
                 });
         }
 
-            // Clear all bookmarks (server + localStorage) and update UI
-            async function deleteAll() {
-                if (!confirm('Are you sure you want to remove all saved jobs?')) return;
+        // Custom confirmation dialog logic
+        function showConfirmDialog(message, onYes, onNo) {
+            const dialog = document.getElementById('confirmDialog');
+            const msg = dialog.querySelector('.confirm-dialog-message');
+            msg.textContent = message;
+            dialog.classList.add('show');
+            function cleanup() {
+                dialog.classList.remove('show');
+                yesBtn.removeEventListener('click', yesHandler);
+                noBtn.removeEventListener('click', noHandler);
+            }
+            const yesBtn = document.getElementById('confirmYesBtn');
+            const noBtn = document.getElementById('confirmNoBtn');
+            function yesHandler() { cleanup(); if (onYes) onYes(); }
+            function noHandler() { cleanup(); if (onNo) onNo(); }
+            yesBtn.addEventListener('click', yesHandler);
+            noBtn.addEventListener('click', noHandler);
+        }
 
+        // Clear all bookmarks (server + localStorage) and update UI
+        async function deleteAll() {
+            showConfirmDialog('Are you sure you want to remove all saved jobs?', async () => {
                 const list = document.getElementById('savedJobsList');
                 const items = Array.from(list.children);
+                const alertBox = document.getElementById('alertBox');
+                const alertMsg = document.getElementById('alertMsg');
+
+                function showAlert(msg, color = '#2563eb', bg = '#eaf6ff', border = '#b6e0fe') {
+                    alertMsg.textContent = msg;
+                    alertBox.style.color = color;
+                    alertBox.style.background = bg;
+                    alertBox.style.borderColor = border;
+                    alertBox.classList.add('show');
+                    // Auto-hide after 3.5s
+                    clearTimeout(alertBox._timeout);
+                    alertBox._timeout = setTimeout(() => {
+                        hideAlert();
+                    }, 3500);
+                }
+
+                function hideAlert() {
+                    alertBox.classList.remove('show');
+                }
+
+                // Close alert on button click (always available)
+                document.getElementById('alertCloseBtn').onclick = hideAlert;
 
                 try {
                     const res = await fetch('/api/bookmarks/clear', {
@@ -497,22 +658,24 @@
                         });
 
                         setTimeout(() => checkIfEmpty(), items.length * 90 + 350);
+                        showAlert('All saved jobs have been cleared.');
                     } else if (res.status === 401) {
                         // not logged in — just clear localStorage
                         try { localStorage.setItem('bookmarkedJobs', JSON.stringify([])); } catch (e) {}
                         items.forEach(el => el.remove());
                         checkIfEmpty();
-                        alert('Cleared local bookmarks. Log in to clear server bookmarks.');
+                        showAlert('Cleared local bookmarks. Log in to clear server bookmarks.', '#b45309', '#fff7ed', '#fde68a');
                     } else {
                         const data = await res.json();
                         console.error('Clear all failed:', data.error);
-                        alert('Failed to clear bookmarks');
+                        showAlert('Failed to clear bookmarks.', '#b91c1c', '#fef2f2', '#fecaca');
                     }
                 } catch (err) {
                     console.error('Error clearing bookmarks:', err);
-                    alert('Network error while clearing bookmarks');
+                    showAlert('Network error while clearing bookmarks.', '#b91c1c', '#fef2f2', '#fecaca');
                 }
-            }
+            }, null);
+        }
 
         function checkIfEmpty() {
             const jobsList = document.getElementById('savedJobsList');
