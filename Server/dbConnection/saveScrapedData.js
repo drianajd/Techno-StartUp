@@ -27,5 +27,4 @@ export async function saveJob(job) {
      VALUES (?, ?, ?, ?, ?)`,
     [job.company, job.position, normalizedLink, job.skills, job.site]
   );
-  console.log("Job added:", job.position);
 }

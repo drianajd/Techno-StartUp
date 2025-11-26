@@ -12,6 +12,7 @@ import cors from "cors";
 import cron from "node-cron";
 import { exec } from "child_process";
 import { findMatchingUsersAndSendEmails } from "./mailer.js";
+import { saveJob, checkDuplicate } from "./dbConnection/saveScrapedData.js";
 
 dotenv.config();
 const app = express();
@@ -77,10 +78,9 @@ function initSession() {
   }));
 }
 
-// --------------------- Run scraper.py ---------------------
 export async function runScraper() {
-  const scriptPath = path.join(__dirname, "../Route/scraper.py"); // updated path
-  const pythonCmd = "py -3.11"; // adjust if needed
+  const scriptPath = path.join(__dirname, "../Route/scraper.py");
+  const pythonCmd = "py -3.11";
 
   console.log(`Running scraper: ${scriptPath}`);
 
@@ -93,42 +93,34 @@ export async function runScraper() {
 
       if (stderr) console.error("Scraper stderr:", stderr);
 
-      let conn;
       try {
         const jobs = JSON.parse(stdout);
         console.log(`Total jobs scraped: ${jobs.length}`);
 
-        conn = await pool.getConnection();
         let inserted = 0;
 
         for (const job of jobs) {
           if (!job.link) continue;
 
-          // check for duplicate
-          const [rows] = await conn.query("SELECT id FROM internships WHERE link = ?", [job.link]);
-          if (rows.length > 0) continue;
+          const isDuplicate = await checkDuplicate(job.link);
+          if (isDuplicate) continue;
 
-          await conn.query(
-            `INSERT INTO internships (company, position, link, qualifications, site)
-             VALUES (?, ?, ?, ?, ?)`,
-            [
-              job.company || "",
-              job.title || "",
-              job.link,
-              job.description || "", // scraper.py currently does not return description/qualifications
-              job.site || ""
-            ]
-          );
+          await saveJob({
+            company: job.company || "",
+            position: job.title || "",
+            link: job.link,
+            skills: job.description || "",
+            site: job.site || ""
+          });
+
           inserted++;
         }
 
         console.log(`Inserted ${inserted} new jobs into the database.`);
         resolve(inserted);
       } catch (err) {
-        console.error("Error parsing scraper output or inserting jobs:", err);
+        console.error("Error parsing scraper output or saving jobs:", err);
         reject(err);
-      } finally {
-        if (conn) conn.release();
       }
     });
   });
@@ -288,10 +280,8 @@ cron.schedule("*/30 * * * *", async () => {
   const PORT = process.env.PORT || 5500;
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Test API: http://localhost:${PORT}/api/test`);
-    console.log(`Test email: http://localhost:${PORT}/test-email`);
-    console.log(`Trigger scraper manually: http://localhost:${PORT}/api/jobs`);
-
+    // console.log(`Test API: http://localhost:${PORT}/api/test`);
+    // console.log(`Test email: http://localhost:${PORT}/test-email`);
     runScraper().catch(err => {
     console.error("Initial scraper run failed:", err);
   });
