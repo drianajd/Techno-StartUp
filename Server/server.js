@@ -155,7 +155,21 @@ app.get("/api/jobs", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
-
+// fetch all stored jobs from db limit to 100 for now
+app.get("/api/jobs/all", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, company, position AS title, link, qualifications AS description, site
+       FROM internships
+       ORDER BY id DESC
+       LIMIT 100`
+    );
+    res.json({ jobs: rows });
+  } catch (err) {
+    console.error("Error fetching jobs:", err);
+    res.status(500).json({ error: "Failed to fetch jobs" });
+  }
+});
 // Serve static pages
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));

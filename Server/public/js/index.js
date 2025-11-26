@@ -51,9 +51,9 @@ async function loadJobs() {
             <p class="mt-2 text-muted">Fetching latest internships...</p>
         </div>
     `;
-
+    
     try {
-        const res = await fetch('/api/jobs');
+        const res = await fetch('/api/jobs/all');
         const data = await res.json();
         const jobs = data.jobs || [];
         
