@@ -10,9 +10,7 @@
   <div class="header-bg">
     <div class="user-info">
       <div class="user-info-left">
-        <div class="profile-pic">
-          <img src="res/Monkey-Selfie.webp" alt="Profile picture">
-        </div>
+       <div class="profile-pic" id="profilePicContainer"></div>
         <div id="userGreeting">
           <h1>Loading...</h1>
           <p>Find your dream OJT</p>
@@ -87,44 +85,6 @@
     </div>
   </section>
 
-  <!-- <section class="job-list">
-    <a href="jobdesc.html" class="job-item">
-      <img src="res/Google__G__logo.svg.webp" alt="Google Logo">
-      <div>
-        <h3>FE Developer (OJT)</h3>
-        <p>Google • Manila, PH</p>
-        <p class="allowance">Allowance Provided</p>
-      </div>
-    </a>
-
-    <a href="jobdesc.html?job=finance" class="job-item">
-      <img src="res/Facebook_Logo_2023.png" alt="Facebook Logo">
-      <div>
-        <h3>Finance Intern (OJT)</h3>
-        <p>Facebook • Manila, PH</p>
-        <p class="allowance">Allowance Provided</p>
-      </div>
-    </a>
-
-    <div class="job-item">
-      <img src="res/graphic.png" alt="Graphic Logo">
-      <div>
-        <h3>Graphic Designer (OJT)</h3>
-        <p>SLU • Baguio, PH</p>
-        <p class="allowance">Allowance Provided</p>
-      </div>
-    </div>
-
-    <div class="job-item">
-      <img src="res/ux.png" alt="UX Writing Logo">
-      <div>
-        <h3>UX Writing Intern (OJT)</h3>
-        <p>UB • Baguio, PH</p>
-        <p class="allowance">Allowance Provided</p>
-      </div>
-    </div>
-  </section> -->
-
   <!-- 🔹 Dynamic Job Feed Section -->
 <section class="job-list" id="jobContainer">
   <p>Loading jobs...</p>
@@ -142,7 +102,7 @@
     <a href="saved.html" class="nav-icon">⛉</a>
   </footer>
 
-  <script>
+  <!-- <script>
     loadJobs();
 async function loadJobs() {
     const container = document.getElementById('jobContainer');
@@ -197,7 +157,7 @@ async function loadJobs() {
   // auto-refresh
   setInterval(loadJobs, 5 * 60 * 1000);
   
-</script>
+</script> -->
 <script src="./js/index.js"></script>
 </body>
 </html>

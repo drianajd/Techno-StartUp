@@ -126,6 +126,11 @@ export async function runScraper() {
   });
 }
 
+// --------------------- Initialize ---------------------
+(async () => {
+  await createPool();
+  initSession();
+
 // --------------------- Routes ---------------------
 app.get("/api/test", (req, res) => {
   res.json({ message: 'Server is running!', timestamp: new Date().toISOString() });
@@ -272,11 +277,6 @@ cron.schedule("*/30 * * * *", async () => {
   }
 });
 
-// --------------------- Initialize ---------------------
-(async () => {
-  await createPool();
-  initSession();
-
   const PORT = process.env.PORT || 5500;
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
@@ -284,6 +284,6 @@ cron.schedule("*/30 * * * *", async () => {
     // console.log(`Test email: http://localhost:${PORT}/test-email`);
     runScraper().catch(err => {
     console.error("Initial scraper run failed:", err);
-  });
+    });
   });
 })();

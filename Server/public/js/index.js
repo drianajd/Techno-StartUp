@@ -3,6 +3,17 @@ const PUBLIC_PAGES = [
     "/login.html",
     "/register.html"
 ];
+const avatarColors = [
+ "#4594EE", 
+  "#3A7BC8",
+  "#2F6AB0",
+  "#82B8F5",
+  "#34C3FF",
+  "#2FA8D8",
+  "#5E63FF", 
+  "#6A88FF", 
+  "#3EC6E0"  
+];
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
     initializeApp();
@@ -345,6 +356,25 @@ async function checkAuth() {
                 `;
             }
         }
+        // generate initials of user
+        const profilePicContainer = document.getElementById("profilePicContainer");
+        if (profilePicContainer) {
+        const name = data.user.username || data.user.email || "U";
+        const initials = name
+            .split(" ")                
+            .map(word => word[0])     
+            .join("")                  
+            .substring(0, 2)           
+            .toUpperCase();
+
+        const bgColor = getColorForName(name);
+        profilePicContainer.innerHTML = `
+            <div class="initials-avatar" style="background: ${bgColor};">
+                ${initials}
+            </div>
+        `;
+    }
+    
 
         return data.loggedIn;
 
@@ -417,6 +447,10 @@ function initSmoothScroll() {
             container.scrollLeft = scrollLeft - walk;
         });
     });
+}
+function getColorForName(name) {
+    const hash = [...name].reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return avatarColors[hash % avatarColors.length];
 }
 
 // Initialize smooth scroll
