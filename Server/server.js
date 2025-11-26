@@ -77,21 +77,21 @@ function initSession() {
   }));
 }
 
-// --------------------- Run JobSpy Scraper ---------------------
-export async function runScraper(pool) {
-  const scriptPath = path.join(__dirname, "../Route/jobspy_scraper.py");
+// --------------------- Run scraper.py ---------------------
+export async function runScraper() {
+  const scriptPath = path.join(__dirname, "../Route/scraper.py"); // updated path
   const pythonCmd = "py -3.11"; // adjust if needed
 
-  console.log(`Running JobSpy scraper: ${scriptPath}`);
+  console.log(`Running scraper: ${scriptPath}`);
 
   return new Promise((resolve, reject) => {
     exec(`${pythonCmd} "${scriptPath}"`, { maxBuffer: 1024 * 1024 * 10 }, async (error, stdout, stderr) => {
       if (error) {
-        console.error("JobSpy scraper error:", error);
+        console.error("Scraper error:", error);
         return reject(error);
       }
 
-      if (stderr) console.error("JobSpy scraper stderr:", stderr);
+      if (stderr) console.error("Scraper stderr:", stderr);
 
       let conn;
       try {
@@ -102,10 +102,10 @@ export async function runScraper(pool) {
         let inserted = 0;
 
         for (const job of jobs) {
-          if (!job.url) continue; // skip if no URL
+          if (!job.link) continue;
 
           // check for duplicate
-          const [rows] = await conn.query("SELECT id FROM internships WHERE link = ?", [job.url]);
+          const [rows] = await conn.query("SELECT id FROM internships WHERE link = ?", [job.link]);
           if (rows.length > 0) continue;
 
           await conn.query(
@@ -114,17 +114,12 @@ export async function runScraper(pool) {
             [
               job.company || "",
               job.title || "",
-              job.url,
-              job.description || "",
+              job.link,
+              job.description || "", // scraper.py currently does not return description/qualifications
               job.site || ""
             ]
           );
           inserted++;
-
-          // Debug log for inserted job
-          console.log(`Inserted job: ${job.title || "N/A"} at ${job.company || "N/A"} (${job.site || "N/A"})`);
-          console.log(`Link: ${job.url}`);
-          console.log(`Description: ${job.description?.substring(0, 100)}...`);
         }
 
         console.log(`Inserted ${inserted} new jobs into the database.`);
@@ -268,7 +263,7 @@ app.use((req, res) => {
 cron.schedule("*/30 * * * *", async () => {
   console.log("Auto scraping jobs triggered...");
   try {
-    const output = await runJobSpyScraper();
+    const output = await runScraper();
     console.log("Auto scraping completed:\n", output);
   } catch (err) {
     console.error("Auto scraping error:", err.message);
