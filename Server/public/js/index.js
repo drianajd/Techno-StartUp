@@ -410,24 +410,31 @@ async function checkAuth() {
                 `;
             }
         }
+
         // generate initials of user
         const profilePicContainer = document.getElementById("profilePicContainer");
         if (profilePicContainer) {
-        const name = data.user.username || data.user.email || "U";
-        const initials = name
-            .split(" ")                
-            .map(word => word[0])     
-            .join("")                  
-            .substring(0, 2)           
-            .toUpperCase();
+            const name = data.user.username || data.user.email || "U";
+            const initials = name
+                .split(" ")                
+                .map(word => word[0])     
+                .join("")                  
+                .substring(0, 2)           
+                .toUpperCase();
 
-        const bgColor = getColorForName(name);
-        profilePicContainer.innerHTML = `
-            <div class="initials-avatar" style="background: ${bgColor};">
-                ${initials}
-            </div>
-        `;
-    }
+            const bgColor = getColorForName(name);
+            profilePicContainer.innerHTML = `
+                <div class="initials-avatar" style="background: ${bgColor}; cursor: pointer;">
+                    ${initials}
+                </div>
+            `;
+            
+            // Make profile picture clickable - navigate to profile page
+            profilePicContainer.style.cursor = 'pointer';
+            profilePicContainer.addEventListener('click', function() {
+                window.location.href = 'user-profile.html';
+            });
+        }
     
 
         return data.loggedIn;
