@@ -1,3 +1,10 @@
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
   font-family: Arial, sans-serif;
   margin: 0;
@@ -120,8 +127,10 @@ footer {
   position: fixed;
   bottom: 0;
   width: 100%;
+  left : 0%;
   box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
 }
+
 
 .nav-icon {
   color: #4a90e2;
