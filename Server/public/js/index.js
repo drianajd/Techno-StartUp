@@ -80,27 +80,29 @@ async function loadJobs() {
             const companyDomain = job.company.split(' ')[0].toLowerCase();
             const logoUrl = `https://logo.clearbit.com/${companyDomain}.com`;
 
-            const item = document.createElement('a');
-            item.href = job.link;
-            item.target = '_blank';
+            const item = document.createElement('div');
             item.className = 'job-item';
             item.innerHTML = `
-                <img src="${logoUrl}" 
-                     alt="${job.company} Logo" 
-                     class="job-logo"
-                     onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
-                <div class="job-details flex-grow-1">
-                    <h3>${escapeHtml(job.title)}</h3>
-                    <p class="company-location">
-                        <i class="bi bi-building"></i> ${escapeHtml(job.company)}
-                    </p>
-                    <p class="site">
-                        <i class="bi bi-link-45deg"></i> ${escapeHtml(job.site)}
-                    </p>
-                </div>
-                <div class="bookmark-icon" data-job-id="${job.title}">
-                    <i class="bi bi-bookmark"></i>
-                </div>
+                <button class="heart-bookmark-btn" data-job-id="${job.id}" data-job-title="${escapeHtml(job.title)}" aria-label="Bookmark job">
+                    <i class="bi bi-heart"></i>
+                </button>
+                <a href="${job.link}" target="_blank" class="job-link">
+                    <div class="job-card-wrapper">
+                        <img src="${logoUrl}" 
+                             alt="${job.company} Logo" 
+                             class="job-logo"
+                             onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
+                    </div>
+                    <div class="job-details flex-grow-1">
+                        <h3>${escapeHtml(job.title)}</h3>
+                        <p class="company-location">
+                            <i class="bi bi-building"></i> ${escapeHtml(job.company)}
+                        </p>
+                        <p class="site">
+                            <i class="bi bi-link-45deg"></i> ${escapeHtml(job.site)}
+                        </p>
+                    </div>
+                </a>
             `;
             
             container.appendChild(item);
@@ -128,78 +130,130 @@ setInterval(loadJobs, 5 * 60 * 1000);
 
 // Bookmark functionality
 function initializeBookmarks() {
-    const bookmarks = document.querySelectorAll('.bookmark-icon, .bookmark-btn');
+    const heartButtons = document.querySelectorAll('.heart-bookmark-btn');
     
-    bookmarks.forEach(bookmark => {
-        // Remove existing listeners to avoid duplicates
-        bookmark.replaceWith(bookmark.cloneNode(true));
-    });
-    
-    // Re-query after cloning
-    document.querySelectorAll('.bookmark-icon, .bookmark-btn').forEach(bookmark => {
-        bookmark.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            this.classList.toggle('active');
-            
-            const icon = this.querySelector('i');
-            if (icon) {
-                if (icon.classList.contains('bi-bookmark')) {
-                    icon.classList.remove('bi-bookmark');
-                    icon.classList.add('bi-bookmark-fill');
-                } else {
-                    icon.classList.remove('bi-bookmark-fill');
-                    icon.classList.add('bi-bookmark');
-                }
-            }
-            
-            // Animation
-            this.style.transform = 'scale(1.3)';
-            setTimeout(() => {
-                this.style.transform = 'scale(1)';
-            }, 200);
-            
-            // Save to localStorage
-            const jobId = this.dataset.jobId;
-            if (jobId) {
-                toggleBookmark(jobId);
-            }
-        });
+    heartButtons.forEach(btn => {
+        btn.removeEventListener('click', handleHeartClick);
+        btn.addEventListener('click', handleHeartClick);
     });
     
     // Load saved bookmarks
     loadBookmarks();
 }
 
-// Toggle bookmark in localStorage
-function toggleBookmark(jobId) {
-    let bookmarks = JSON.parse(localStorage.getItem('bookmarkedJobs') || '[]');
+// Handle heart button clicks
+async function handleHeartClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
     
-    if (bookmarks.includes(jobId)) {
-        bookmarks = bookmarks.filter(id => id !== jobId);
-    } else {
-        bookmarks.push(jobId);
+    const btn = this;
+    const jobId = btn.dataset.jobId;
+    const jobTitle = btn.dataset.jobTitle;
+    
+    if (!jobId) {
+        console.log('No job ID found');
+        return;
     }
     
-    localStorage.setItem('bookmarkedJobs', JSON.stringify(bookmarks));
+    console.log('Heart clicked for job ID:', jobId);
+    
+    // First, toggle the UI visually
+    btn.classList.toggle('bookmarked');
+    const icon = btn.querySelector('i');
+    
+    if (btn.classList.contains('bookmarked')) {
+        icon.classList.remove('bi-heart');
+        icon.classList.add('bi-heart-fill');
+    } else {
+        icon.classList.remove('bi-heart-fill');
+        icon.classList.add('bi-heart');
+    }
+    
+    // Save to localStorage for offline access
+    let localBookmarks = JSON.parse(localStorage.getItem('bookmarkedJobs') || '[]');
+    if (btn.classList.contains('bookmarked')) {
+        if (!localBookmarks.includes(jobId)) {
+            localBookmarks.push(jobId);
+        }
+    } else {
+        localBookmarks = localBookmarks.filter(id => id !== jobId);
+    }
+    localStorage.setItem('bookmarkedJobs', JSON.stringify(localBookmarks));
+    console.log('Saved to localStorage:', localBookmarks);
+    
+    // Try to save to database if user is logged in
+    try {
+        const response = await fetch('/api/bookmarks/toggle', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                internship_id: jobId,
+                title: jobTitle
+            })
+        });
+        
+        const data = await response.json();
+        console.log('Bookmark response:', data);
+        console.log('Response status:', response.status);
+        
+        if (response.ok) {
+            // Successfully saved to database
+            const message = data.bookmarked ? 'Added to bookmarks!' : 'Removed from bookmarks';
+            console.log('Database save success:', message);
+        } else if (response.status === 401) {
+            console.warn('User not logged in - saved to local storage only');
+        } else {
+            console.error('Bookmark database error:', data.error);
+        }
+    } catch (err) {
+        console.error('Error saving to database:', err);
+    }
 }
 
-// Load bookmarks from localStorage
-function loadBookmarks() {
-    const bookmarks = JSON.parse(localStorage.getItem('bookmarkedJobs') || '[]');
+// Load bookmarks from database and localStorage
+async function loadBookmarks() {
+    const bookmarkedIds = [];
     
-    bookmarks.forEach(jobId => {
-        const bookmarkBtn = document.querySelector(`[data-job-id="${jobId}"]`);
-        if (bookmarkBtn) {
-            bookmarkBtn.classList.add('active');
-            const icon = bookmarkBtn.querySelector('i');
+    // Try to load from database first (if user is logged in)
+    try {
+        const response = await fetch('/api/bookmarks', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            bookmarkedIds.push(...(data.bookmarks || []));
+            console.log('Loaded from database:', data.bookmarks);
+        }
+    } catch (err) {
+        console.error('Error loading bookmarks from database:', err);
+    }
+    
+    // Also load from localStorage (for offline/unauthenticated users)
+    const localBookmarks = JSON.parse(localStorage.getItem('bookmarkedJobs') || '[]');
+    bookmarkedIds.push(...localBookmarks);
+    
+    // Remove duplicates
+    const uniqueIds = [...new Set(bookmarkedIds)];
+    
+    // Apply bookmarked styling to all buttons
+    uniqueIds.forEach(bookmarkId => {
+        const btn = document.querySelector(`[data-job-id="${bookmarkId}"]`);
+        if (btn) {
+            btn.classList.add('bookmarked');
+            const icon = btn.querySelector('i');
             if (icon) {
-                icon.classList.remove('bi-bookmark');
-                icon.classList.add('bi-bookmark-fill');
+                icon.classList.remove('bi-heart');
+                icon.classList.add('bi-heart-fill');
             }
         }
     });
+    
+    console.log('Total bookmarked jobs loaded:', uniqueIds.length);
 }
 
 // Filter tags functionality

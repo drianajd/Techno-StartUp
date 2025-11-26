@@ -1,23 +1,16 @@
 CREATE DATABASE IF NOT EXISTS grantify;
 USE grantify;
 
--- Users table
+-- 1. Users table (Independent)
 CREATE TABLE IF NOT EXISTS users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  username VARCHAR(50) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  email VARCHAR(75) NOT NULL UNIQUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(75) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS user_skills (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  skill VARCHAR(255) NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- Jobs table
+-- 2. Jobs table (Internships - Independent)
 CREATE TABLE IF NOT EXISTS internships (
     id INT AUTO_INCREMENT PRIMARY KEY,
     company VARCHAR(255),
@@ -28,10 +21,46 @@ CREATE TABLE IF NOT EXISTS internships (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 3. User Skills table (Depends on users)
+CREATE TABLE IF NOT EXISTS user_skills (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    skill VARCHAR(255) NOT NULL,
+    -- FK to users table
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 4. Bookmarks table (Depends on users and internships)
+CREATE TABLE IF NOT EXISTS bookmarks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    internship_id INT NOT NULL,
+    saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Constraint: A user can only bookmark the same internship once
+    UNIQUE KEY unique_user_internship (user_id, internship_id),
+    
+    -- FK to users table
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- FK to internships table
+    FOREIGN KEY (internship_id) REFERENCES internships(id) ON DELETE CASCADE
+);
+
+-- 5. Notifications Sent table (Depends on users and internships)
+-- Assuming 'job_id' maps to 'internships.id'
 CREATE TABLE IF NOT EXISTS notifications_sent (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  job_id INT NOT NULL,
-  sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY unique_user_job (user_id, job_id)
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    job_id INT NOT NULL,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Constraint: Prevent duplicate notifications for the same job and user
+    UNIQUE KEY unique_user_job (user_id, job_id),
+    
+    -- FK to users table
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- FK to internships/jobs table
+    FOREIGN KEY (job_id) REFERENCES internships(id) ON DELETE CASCADE
 );

@@ -14,9 +14,10 @@ import { exec } from "child_process";
 import { findMatchingUsersAndSendEmails } from "./mailer.js";
 import { saveJob, checkDuplicate } from "./dbConnection/saveScrapedData.js";
 
-dotenv.config();
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+dotenv.config({ path: path.join(__dirname, "../.env") });
 
 // --------------------- Middleware ---------------------
 app.use(cors({
@@ -222,11 +223,17 @@ app.post("/api/login", async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) return res.status(401).json({ error: "Invalid credentials" });
 
+    console.log("Login successful for user:", user.username, "ID:", user.id);
+
     req.session.regenerate((err) => {
-      if (err) return res.status(500).json({ error: "Server error" });
+      if (err) {
+        console.error("Session regeneration error:", err);
+        return res.status(500).json({ error: "Server error" });
+      }
       req.session.userId = user.id;
       req.session.username = user.username;
       req.session.email = user.email;
+      console.log("Session set for user:", user.username, "Session ID:", req.session.id);
       res.json({ success: true, message: "Logged in successfully", user: { id: user.id, username: user.username, email: user.email } });
     });
   } catch (err) {
@@ -258,6 +265,109 @@ app.post("/api/logout", (req, res) => {
     res.clearCookie("session_cookie_name");
     res.json({ success: true });
   });
+});
+
+// --------------------- Bookmarks: Toggle Bookmark ---------------------
+app.post("/api/bookmarks/toggle", async (req, res) => {
+  try {
+    console.log("Bookmark toggle request - Session:", req.session);
+    console.log("UserId from session:", req.session.userId);
+    
+    // Check if user is logged in
+    if (!req.session.userId) {
+      console.log("User not logged in");
+      return res.status(401).json({ error: "User not logged in" });
+    }
+
+    const { internship_id, title } = req.body;
+    const userId = req.session.userId;
+
+    console.log("Attempting to toggle bookmark for user:", userId, "internship:", internship_id);
+
+    if (!internship_id) {
+      return res.status(400).json({ error: "Missing internship_id" });
+    }
+
+    // Check if bookmark already exists
+    const [existingBookmark] = await pool.query(
+      "SELECT id FROM bookmarks WHERE user_id = ? AND internship_id = ?",
+      [userId, internship_id]
+    );
+
+    console.log("Existing bookmark check result:", existingBookmark);
+
+    if (existingBookmark.length > 0) {
+      // Delete bookmark
+      console.log("Deleting bookmark");
+      await pool.query(
+        "DELETE FROM bookmarks WHERE user_id = ? AND internship_id = ?",
+        [userId, internship_id]
+      );
+      res.json({ success: true, bookmarked: false, message: "Bookmark removed" });
+    } else {
+      // Add bookmark
+      console.log("Adding bookmark");
+      await pool.query(
+        "INSERT INTO bookmarks (user_id, internship_id) VALUES (?, ?)",
+        [userId, internship_id]
+      );
+      res.json({ success: true, bookmarked: true, message: "Bookmark added" });
+    }
+  } catch (err) {
+    console.error("Bookmark toggle error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// --------------------- Bookmarks: Get User Bookmarks ---------------------
+app.get("/api/bookmarks", async (req, res) => {
+  try {
+    // Check if user is logged in
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "User not logged in" });
+    }
+
+    const userId = req.session.userId;
+
+    // Fetch all bookmarked internship IDs for the user
+    const [bookmarks] = await pool.query(
+      "SELECT internship_id FROM bookmarks WHERE user_id = ? ORDER BY saved_at DESC",
+      [userId]
+    );
+
+    const bookmarkIds = bookmarks.map(b => b.internship_id);
+    res.json({ success: true, bookmarks: bookmarkIds });
+  } catch (err) {
+    console.error("Get bookmarks error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// --------------------- Bookmarks: Get Bookmarked Jobs Details ---------------------
+app.get("/api/bookmarks/jobs", async (req, res) => {
+  try {
+    // Check if user is logged in
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "User not logged in" });
+    }
+
+    const userId = req.session.userId;
+
+    // Fetch all bookmarked jobs with their details
+    const [bookmarkedJobs] = await pool.query(
+      `SELECT i.id, i.company, i.position AS title, i.link, i.qualifications AS description, i.site, b.saved_at
+       FROM bookmarks b
+       JOIN internships i ON b.internship_id = i.id
+       WHERE b.user_id = ?
+       ORDER BY b.saved_at DESC`,
+      [userId]
+    );
+
+    res.json({ success: true, jobs: bookmarkedJobs });
+  } catch (err) {
+    console.error("Get bookmarked jobs error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 // --------------------- Error & 404 ---------------------
