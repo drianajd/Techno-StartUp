@@ -17,63 +17,188 @@ jobs = []
 # ---------------- JobStreet ----------------
 async def scrape_jobstreet(page):
     for p in range(1, MAX_PAGES + 1):
-        url = f"https://www.jobstreet.com.ph/en/job-search/{SEARCH_KEYWORD}-jobs-in-philippines?pg={p}"
+        url = f"https://ph.jobstreet.com/internship-jobs/in-Philippines"
         await page.goto(url, wait_until="domcontentloaded")
-        await asyncio.sleep(2)  # wait for page content
+        await asyncio.sleep(2)
 
-        cards = await page.query_selector_all("article[data-automation='normalJob']")
+        # NEW selectors (2025 layout)
+        cards = await page.query_selector_all("div[data-automation='job-card'], article[data-automation='normalJob']")
+        if not cards:
+            # fallback container selector
+            cards = await page.query_selector_all("div#job-card")
+
         for card in cards:
-            title = await card.query_selector_eval("a[data-automation='jobTitle']", "el => el.innerText", strict=False)
-            company = await card.query_selector_eval("a[data-automation='jobCompany']", "el => el.innerText", strict=False)
-            location_nodes = await card.query_selector_all("span[data-automation='jobCardLocation'] a")
-            location = ", ".join([await node.inner_text() for node in location_nodes]) if location_nodes else ""
-            link = await card.query_selector_eval("a[data-automation='jobTitle']", "el => el.href", strict=False)
+            # title fallbacks
+            title = None
+            for sel in [
+                "a[data-automation='jobTitle']",
+                "a.job-title",
+                "h3 a"
+            ]:
+                try:
+                    title = await card.eval_on_selector(sel, "el => el.innerText")
+                    if title:
+                        break
+                except:
+                    pass
+
+            # company fallbacks
+            company = None
+            for sel in [
+                "span[data-automation='jobCompany']",
+                "a[data-automation='jobCompany']",
+                "span.company",
+                "div.company a"
+            ]:
+                try:
+                    company = await card.eval_on_selector(sel, "el => el.innerText")
+                    if company:
+                        break
+                except:
+                    pass
+
+            # location fallbacks
+            location = None
+            for sel in [
+                "span[data-automation='detailsLocation']",
+                "span[data-automation='jobCardLocation']",
+                "span.location",
+                "div.job-location"
+            ]:
+                try:
+                    location = await card.eval_on_selector(sel, "el => el.innerText")
+                    if location:
+                        break
+                except:
+                    pass
+
+            # link
+            link = None
+            for sel in [
+                "a[data-automation='jobTitle']",
+                "a.job-title",
+                "h3 a"
+            ]:
+                try:
+                    link = await card.eval_on_selector(sel, "el => el.href")
+                    if link:
+                        break
+                except:
+                    pass
+
             if link and not link.startswith("http"):
                 link = "https://www.jobstreet.com.ph" + link
+
             if title:
                 jobs.append({
                     "site": "JobStreet",
                     "title": title.strip(),
                     "company": company.strip() if company else "",
-                    "location": location.strip(),
+                    "location": location.strip() if location else "",
                     "link": link
                 })
 
 #HAS CAPCHA
 # ---------------- Indeed ---------------- 
 async def scrape_indeed(page):
-    async def safe_eval_on_selector(card, selector):
-        try:
-            return await card.eval_on_selector(selector, "el => el.innerText")
-        except:
-            return None
+    async def safe_get_text(card, selectors):
+        """Try a list of selectors on the ElementHandle and return the first non-empty text."""
+        for sel in selectors:
+            try:
+                val = await card.eval_on_selector(sel, "el => el.innerText")
+                if val:
+                    return val.strip()
+            except Exception:
+                continue
+        return None
 
-    async def safe_eval_on_selector_href(card, selector):
-        try:
-            return await card.eval_on_selector(selector, "el => el.href")
-        except:
-            return None
+    async def safe_get_href(card, selectors):
+        """Try selectors that point to links and return the first href (absolute if possible)."""
+        for sel in selectors:
+            try:
+                href = await card.eval_on_selector(sel, "el => el.href || el.getAttribute('href')")
+                if href:
+                    href = href.strip()
+                    # normalize relative links
+                    if href.startswith("/"):
+                        href = "https://ph.indeed.com" + href
+                    return href
+            except Exception:
+                continue
+        return None
+
+    # Wait until job cards appear (try a couple of common top-level locators)
+    try:
+        await page.wait_for_selector("div.job_seen_beacon, a.jcs-JobTitle, div.slider_container", timeout=10000)
+    except Exception:
+        # If nothing appears, still continue to attempt pages
+        pass
 
     for p in range(0, MAX_PAGES):
         url = f"https://ph.indeed.com/jobs?q={SEARCH_KEYWORD}&l={LOCATION}&start={p*10}"
-        await page.goto(url)
-        await page.wait_for_timeout(2000)
+        await page.goto(url, wait_until="domcontentloaded")
+        # small scrolls to trigger lazy load
+        for _ in range(3):
+            await page.evaluate("window.scrollBy(0, document.body.scrollHeight / 3)")
+            await asyncio.sleep(0.8)
 
-        cards = await page.query_selector_all("div.job_seen_beacon")
+        # gather cards (use several possible containers)
+        cards = await page.query_selector_all("div.job_seen_beacon, div.slider_container, article.jobsearch-SerpJobCard, div.jobsearch-SerpJobCard")
+        if not cards:
+            # fallback: try anchor-based job items
+            cards = await page.query_selector_all("a.jcs-JobTitle, a.tapItem")
+
+        # selectors to try for title/company/location/link (ordered from preferred to fallback)
+        title_sel_candidates = [
+            "h2.jobTitle > span",          # current common pattern
+            "h2 > span",                   # simpler fallback
+            "a.jobtitle",                  # legacy fallback
+            "a.jcs-JobTitle > span",
+            "a.tapItem > h2 > span"
+        ]
+        company_sel_candidates = [
+            "span.companyName",
+            "span.company",
+            "div.company > a",
+            "div.company"
+        ]
+        location_sel_candidates = [
+            "div.companyLocation",
+            "div.location",
+            "span.location",
+            "div.company > div"
+        ]
+        link_sel_candidates = [
+            "h2 a",                        # typical anchor inside title
+            "a.jcs-JobTitle",
+            "a.tapItem",
+            "a"                            # last resort: first anchor in card
+        ]
+
         for card in cards:
-            title = await safe_eval_on_selector(card, "h2 > span")
-            company = await safe_eval_on_selector(card, "span.companyName")
-            location = await safe_eval_on_selector(card, "div.companyLocation")
-            link = await safe_eval_on_selector_href(card, "h2 a")
+            title = await safe_get_text(card, title_sel_candidates)
+            company = await safe_get_text(card, company_sel_candidates)
+            location = await safe_get_text(card, location_sel_candidates)
+            link = await safe_get_href(card, link_sel_candidates)
+
+            # Extra: if link is missing, try to build from jobId attribute if present
+            if not link:
+                try:
+                    job_id = await card.get_attribute("data-jk") or await card.get_attribute("data-jcid")
+                    if job_id:
+                        link = f"https://ph.indeed.com/viewjob?jk={job_id}"
+                except Exception:
+                    pass
 
             if title:
                 jobs.append({
                     "site": "Indeed",
-                    "title": title.strip(),
-                    "company": company.strip() if company else "",
-                    "location": location.strip() if location else "",
-                    "link": link
+                    "title": title,
+                    "company": company or "",
+                    "location": location or "",
+                    "link": link or ""
                 })
+
 
 #WORKING PROPERLY
 # ---------------- LinkedIn ----------------
@@ -107,26 +232,72 @@ def scrape_linkedin():
 
 # WORKING BUT INCORRECT QUERYSELECTORS
 # ---------------- Kalibrr ----------------
-async def scrape_kalibrr(page):
-    for p in range(1, MAX_PAGES + 1):
-        url = f"https://www.kalibrr.com/home/co/Philippines/w/100-internship-or-ojt"
-        await page.goto(url, wait_until="domcontentloaded")
-        await asyncio.sleep(2)
+# async def scrape_kalibrr(page):
+#     for p in range(1, MAX_PAGES + 1):
+#         url = f"https://www.kalibrr.com/home/co/Philippines/w/100-internship-or-ojt"
+#         await page.goto(url, wait_until="domcontentloaded")
+#         await asyncio.sleep(2)
 
-        cards = await page.query_selector_all("div.css-1m4v4ye")
-        for card in cards:
-            title = await card.query_selector_eval("a.css-1jv94bl", "el => el.innerText", strict=False)
-            company = await card.query_selector_eval("span.css-1b9rs62", "el => el.innerText", strict=False)
-            location = await card.query_selector_eval("span.css-1va4azx", "el => el.innerText", strict=False)
-            link = await card.query_selector_eval("a.css-1jv94bl", "el => el.href", strict=False)
-            if title:
-                jobs.append({
-                    "site": "Kalibrr",
-                    "title": title.strip(),
-                    "company": company.strip() if company else "",
-                    "location": location.strip() if location else "",
-                    "link": link
-                })
+#         cards = await page.query_selector_all("div.css-1m4v4ye")
+#         for card in cards:
+#             title = await card.query_selector_eval("a.css-1jv94bl", "el => el.innerText", strict=False)
+#             company = await card.query_selector_eval("span.css-1b9rs62", "el => el.innerText", strict=False)
+#             location = await card.query_selector_eval("span.css-1va4azx", "el => el.innerText", strict=False)
+#             link = await card.query_selector_eval("a.css-1jv94bl", "el => el.href", strict=False)
+#             if title:
+#                 jobs.append({
+#                     "site": "Kalibrr",
+#                     "title": title.strip(),
+#                     "company": company.strip() if company else "",
+#                     "location": location.strip() if location else "",
+#                     "link": link
+#                 })
+
+async def scrape_kalibrr(page):
+    url = "https://www.kalibrr.com/home/co/Philippines/w/100-internship-or-ojt"
+
+    await page.goto(url, wait_until="domcontentloaded", timeout=60000)
+
+    # scroll to load content
+    await page.evaluate("window.scrollBy(0, document.body.scrollHeight)")
+    await asyncio.sleep(2)
+
+    cards = await page.query_selector_all("div.k-font-dm-sans.k-rounded-lg")
+
+    for card in cards:
+
+        # title
+        title = await card.eval_on_selector(
+            "h2 a",
+            "el => el.textContent?.trim()"
+        )
+
+        # company
+        company = await card.eval_on_selector(
+            "span.k-inline-flex a",
+            "el => el.textContent?.trim()"
+        )
+
+        # location
+        location = await card.eval_on_selector(
+            "span.k-text-gray-500",
+            "el => el.textContent?.trim()"
+        )
+
+        # link
+        link = await card.eval_on_selector(
+            "h2 a",
+            "el => el.href"
+        )
+
+        if title:
+            jobs.append({
+                "site": "Kalibrr",
+                "title": title,
+                "company": company or "",
+                "location": location or "",
+                "link": link
+            })
 
 
 # ---------------- Main ----------------
