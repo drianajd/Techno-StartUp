@@ -95,7 +95,7 @@ export async function runScraper() {
       if (stderr) console.error("Scraper stderr:", stderr);
 
       try {
-        const jobs = JSON.parse(stdout);
+        const jobs = JSON.parse(stdout); // should be a list of job objects
         console.log(`Total jobs scraped: ${jobs.length}`);
 
         let inserted = 0;
@@ -107,11 +107,12 @@ export async function runScraper() {
           if (isDuplicate) continue;
 
           await saveJob({
+            site: job.site || "",
+            title: job.title || "",
+            position: job.position || "", 
             company: job.company || "",
-            position: job.title || "",
-            link: job.link,
-            skills: job.description || "",
-            site: job.site || ""
+            location: job.location || "",  
+            link: job.link
           });
 
           inserted++;
