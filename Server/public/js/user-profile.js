@@ -36,7 +36,7 @@ async function loadUserProfile() {
 
             // Internship Preferences
             if (preferences.preferred_industry !== undefined && preferences.preferred_industry !== null) document.getElementById('preferredIndustry').value = preferences.preferred_industry;
-            if (preferences.preferred_role !== undefined && preferences.preferred_role !== null) document.getElementById('preferredRole').value = preferences.preferred_role;
+            if (preferences.preferred_position !== undefined && preferences.preferred_position !== null) document.getElementById('preferredPosition').value = preferences.preferred_position;
             if (preferences.work_arrangement !== undefined && preferences.work_arrangement !== null) document.getElementById('workArrangement').value = preferences.work_arrangement;
             if (preferences.min_stipend !== undefined && preferences.min_stipend !== null) document.getElementById('minStipend').value = preferences.min_stipend;
 
@@ -84,7 +84,7 @@ async function loadUserProfile() {
 
     // Internship Preferences (only load if localStorage has these values)
     if (userData.preferredIndustry) document.getElementById('preferredIndustry').value = userData.preferredIndustry;
-    if (userData.preferredRole) document.getElementById('preferredRole').value = userData.preferredRole;
+    if (userData.preferredPosition) document.getElementById('preferredPosition').value = userData.preferredPosition;
     if (userData.workArrangement) document.getElementById('workArrangement').value = userData.workArrangement;
     if (userData.minStipend) document.getElementById('minStipend').value = userData.minStipend;
     
@@ -164,7 +164,7 @@ document.getElementById('profileForm').addEventListener('submit', async function
         contactNumber: document.getElementById('contactNumber').value.trim(),
         courseYear: document.getElementById('courseYear').value.trim(),
         preferredIndustry: document.getElementById('preferredIndustry').value.trim(),
-        preferredRole: document.getElementById('preferredRole').value.trim(),
+        preferredPosition: document.getElementById('preferredPosition').value.trim(),
         workArrangement: document.getElementById('workArrangement').value,
         minStipend: document.getElementById('minStipend').value || 0,
         profilePicture: profilePicture
@@ -188,7 +188,7 @@ document.getElementById('profileForm').addEventListener('submit', async function
                 contactNumber: userData.contactNumber,
                 courseYear: userData.courseYear,
                 preferredIndustry: userData.preferredIndustry,
-                preferredRole: userData.preferredRole,
+                preferredPosition: userData.preferredPosition,
                 workArrangement: userData.workArrangement,
                 minStipend: userData.minStipend,
                 profilePicture: userData.profilePicture

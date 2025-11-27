@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS user_preferences (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL UNIQUE,
     preferred_industry VARCHAR(100),
-    preferred_role VARCHAR(255),
+    preferred_position VARCHAR(255),
     work_arrangement VARCHAR(50),
     min_stipend INT DEFAULT 0,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

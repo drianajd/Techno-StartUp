@@ -480,7 +480,7 @@ app.post("/api/profile", async (req, res) => {
     const userId = req.session.userId;
     const {
       firstName, middleName, lastName, dateOfBirth, gender, address,
-      contactNumber, courseYear, preferredIndustry, preferredRole,
+      contactNumber, courseYear, preferredIndustry, preferredPosition,
       workArrangement, minStipend, profilePicture
     } = req.body;
 
@@ -564,16 +564,16 @@ app.post("/api/profile", async (req, res) => {
     if (existingPref.length > 0) {
       // Update existing preferences
       await pool.query(
-        `UPDATE user_preferences SET preferred_industry = ?, preferred_role = ?,
+        `UPDATE user_preferences SET preferred_industry = ?, preferred_position = ?,
          work_arrangement = ?, min_stipend = ? WHERE user_id = ?`,
-        [preferredIndustry, preferredRole, workArrangement, minStipend, userId]
+        [preferredIndustry, preferredPosition, workArrangement, minStipend, userId]
       );
     } else {
       // Insert new preferences
       await pool.query(
-        `INSERT INTO user_preferences (user_id, preferred_industry, preferred_role,
+        `INSERT INTO user_preferences (user_id, preferred_industry, preferred_position,
          work_arrangement, min_stipend) VALUES (?, ?, ?, ?, ?)`,
-        [userId, preferredIndustry, preferredRole, workArrangement, minStipend]
+        [userId, preferredIndustry, preferredPosition, workArrangement, minStipend]
       );
     }
 
