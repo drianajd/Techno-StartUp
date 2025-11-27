@@ -4,11 +4,112 @@ import json
 from playwright.async_api import async_playwright
 import requests
 from bs4 import BeautifulSoup
-
+from datetime import datetime
+import re
 # Search config
 SEARCH_KEYWORD = "internship"
 LOCATION = "Philippines"
-MAX_PAGES = 2  # Reduce for testing; increase as needed
+MAX_PAGES = 5  # Reduce for testing; increase as needed
+
+# Output CSV file for testing
+# OUTPUT_FILE = f"internship_jobs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv" 
+
+VALID_ROLE_KEYWORDS = [
+
+    # ---------------- IT / CS ----------------
+    "developer", "engineer", "programmer", "software", "web", "mobile",
+    "qa", "quality assurance", "analyst", "data", "database", "network",
+    "system", "systems", "ui", "ux", "design", "designer", "cyber",
+    "security", "technical", "support", "it", "devops", "tester",
+    "cloud", "full stack", "frontend", "backend", "tech", "technology",
+
+    # ---------------- Business / Office ----------------
+    "marketing", "hr", "human resources", "finance", "accounting",
+    "admin", "administrative", "operations", "research", "assistant",
+    "clerk", "executive", "business", "management", "sales", "service",
+    "customer", "csr", "sourcing", "procurement", "purchasing",
+    "audit", "auditing", "bookkeeping", "bookkeeper", "logistics",
+    "supply chain", "project", "analyst", "coordinator",
+
+    # ---------------- Creative / Media ----------------
+    "video", "editor", "editing", "content", "multimedia", "graphic",
+    "graphics", "animation", "animator", "photography", "photo",
+    "social media", "media", "writer", "copywriter", "illustrator",
+    "film", "creative", "production",
+
+    # ---------------- Engineering ----------------
+    "mechanical", "electrical", "civil", "industrial", "electronics",
+    "mechatronics", "chemical", "architect", "architecture",
+    "cad", "autocad", "drafter", "drafting", "surveying", "building",
+    "engineering"
+
+    # ---------------- Healthcare (common PH internships) ----------------
+    "nursing", "medical", "health", "pharmacy", "pharmacist",
+    "laboratory", "clinic", "clinical", "biotech", "biology",
+
+    # ---------------- Education ----------------
+    "teacher", "teaching", "education", "tutor", "trainer",
+
+    # ---------------- Hospitality / Tourism ----------------
+    "hotel", "tourism", "hospitality", "food", "beverage",
+    "kitchen", "chef", "culinary", "front desk",
+
+    # ---------------- Call Center / BPO ----------------
+    "bpo", "call center", "agent", "csr", "customer service",
+    "technical support",
+
+    # ---------------- Science / R&D ----------------
+    "science", "scientist", "laboratory", "lab", "researcher",
+    "chemistry", "physics", "environmental",
+
+    # ---------------- Manufacturing ----------------
+    "production", "manufacturing", "factory", "qa", "qc", "quality control",
+
+    # ---------------- Misc ----------------
+    "writer", "translator", "paralegal", "legal", "law", "government",
+    "ngo", "community", "public relations", "pr"
+
+]
+
+def extract_position(title: str) -> str:
+    """
+    Extracts the main role/position from an internship job title using WHOLE WORD matching.
+    Returns: "Role Name Internship"  →  e.g., "Marketing Internship"
+    Returns '' if no valid role found.
+    """
+    if not title:
+        return ""
+
+    t = " " + title.lower().strip() + " "  # add spaces to make word-boundary checks easy
+
+    # Must contain at least one internship indicator (whole word)
+    internship_indicators = [
+        "internship", "ojt", "intern", "on-the-job", "practicum",
+        "apprentice", "trainee", "student intern"
+    ]
+    if not any(re.search(r'\b' + re.escape(ind) + r'\b', t) for ind in internship_indicators):
+        return ""
+
+    # Find all VALID_ROLE_KEYWORDS that appear as whole words
+    matches = []
+    for role in VALID_ROLE_KEYWORDS:
+        # Use word boundaries \b to match whole words only
+        pattern = r'\b' + re.escape(role) + r'\b'
+        if re.search(pattern, t):
+            matches.append(role)
+
+    if not matches:
+        return ""
+
+    # Pick the longest (most specific) match
+    best = max(matches, key=len)
+
+    # Capitalize properly and fix common acronyms
+    result = best.title()
+    result = result.replace(" It ", " IT ").replace(" Hr ", " HR ").replace(" Qa ", " QA ")
+    result = result.replace(" Csr ", " CSR ").replace(" Pr ", " PR ").replace(" Ui ", " UI ").replace(" Ux ", " UX ")
+
+    return result + " Internship"
 
 jobs = []
 
@@ -63,10 +164,13 @@ async def scrape_jobstreet(page):
             if link and not link.startswith("http"):
                 link = "https://www.jobstreet.com.ph" + link
 
+            position = extract_position(title)
+
             if title:
                 jobs.append({
                     "site": "JobStreet",
                     "title": title.strip(),
+                    "position": position,
                     "company": company.strip() if company else "",
                     "location": location.strip() if location else "",
                     "link": link
@@ -98,8 +202,8 @@ async def scrape_indeed(page):
                 continue
         return None
 
-    for p in range(0, MAX_PAGES):
-        url = f"https://ph.indeed.com/jobs?q={SEARCH_KEYWORD}&l={LOCATION}&start={p*10}"
+    for p in range(0, 2):
+        url = f"https://ph.indeed.com/jobs?q=internship&l=Philippines&ts="
         await page.goto(url, wait_until="domcontentloaded")
         for _ in range(3):
             await page.evaluate("window.scrollBy(0, document.body.scrollHeight / 3)")
@@ -109,9 +213,12 @@ async def scrape_indeed(page):
         if not cards:
             cards = await page.query_selector_all("a.jcs-JobTitle, a.tapItem")
 
-        title_sel_candidates = ["h2.jobTitle > span", "h2 > span", "a.jobtitle", "a.jcs-JobTitle > span", "a.tapItem > h2 > span"]
-        company_sel_candidates = ["span.companyName", "span.company", "div.company > a", "div.company"]
-        location_sel_candidates = ["div.companyLocation", "div.location", "span.location", "div.company > div"]
+        title_sel_candidates = ["h2.jobTitle > span", "h2 > span", "a.jobtitle", 
+                                "a.jcs-JobTitle > span", "a.tapItem > h2 > span"]
+        company_sel_candidates = ["span.companyName", "span.company", "div.company > a", "div.company",
+                                  "span[data-testid='company-name']"]
+        location_sel_candidates = ["div.companyLocation", "div.location", "span.location",
+                                    "div.company > div", "div[data-testid='text-location']"]
         link_sel_candidates = ["h2 a", "a.jcs-JobTitle", "a.tapItem", "a"]
 
         for card in cards:
@@ -128,13 +235,15 @@ async def scrape_indeed(page):
                 except:
                     pass
 
+            position = extract_position(title)
             if title:
                 jobs.append({
                     "site": "Indeed",
-                    "title": title,
-                    "company": company or "",
-                    "location": location or "",
-                    "link": link or ""
+                    "title": title.strip(),
+                    "position": position,
+                    "company": company.strip() if company else "",
+                    "location": location.strip() if location else "",
+                    "link": link
                 })
 
 
@@ -154,10 +263,12 @@ def scrape_linkedin():
         title = el.select_one(".base-search-card__title")
         company = el.select_one(".base-search-card__subtitle")
         link = el.select_one("a.base-card__full-link")
+        position = extract_position(title.get_text(strip=True) if title else "")
         if title and "internship" in title.text.lower():
             linkedin_jobs.append({
                 "site": "LinkedIn",
                 "title": title.text.strip(),
+                "position": position,
                 "company": company.text.strip() if company else "",
                 "location": "",
                 "link": link['href'] if link else ""
@@ -179,11 +290,12 @@ async def scrape_kalibrr(page):
         company = await card.eval_on_selector("span.k-inline-flex a", "el => el.textContent?.trim()")
         location = await card.eval_on_selector("span.k-text-gray-500", "el => el.textContent?.trim()")
         link = await card.eval_on_selector("h2 a", "el => el.href")
-
+        position = extract_position(title)
         if title:
             jobs.append({
                 "site": "Kalibrr",
                 "title": title,
+                "position": position,
                 "company": company or "",
                 "location": location or "",
                 "link": link
@@ -193,7 +305,7 @@ async def scrape_kalibrr(page):
 # ---------------- Main ----------------
 async def scrape_all_jobs():
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(headless=False)
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                        "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -214,7 +326,17 @@ async def scrape_all_jobs():
     return unique_jobs
 
 
-if __name__ == "__main__":
-    # Output JSON for Node.js
-    results = asyncio.run(scrape_all_jobs())
-    print(json.dumps(results))
+# # for testing
+# def save_to_csv(results, filename=OUTPUT_FILE):
+#     import csv
+#     with open(filename, "w", newline="", encoding="utf-8") as f:
+#         writer = csv.writer(f)
+#         writer.writerow(results[0].keys())  # header
+#         for r in results:
+#             writer.writerow(r.values())
+#     print("Saved results to", filename)
+
+# if __name__ == "__main__":
+#     # Output JSON for Node.js
+#     results = asyncio.run(scrape_all_jobs())
+#     save_to_csv(results)
