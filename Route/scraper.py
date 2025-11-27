@@ -305,7 +305,7 @@ async def scrape_kalibrr(page):
 # ---------------- Main ----------------
 async def scrape_all_jobs():
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
+        browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                        "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -326,17 +326,7 @@ async def scrape_all_jobs():
     return unique_jobs
 
 
-# # for testing
-# def save_to_csv(results, filename=OUTPUT_FILE):
-#     import csv
-#     with open(filename, "w", newline="", encoding="utf-8") as f:
-#         writer = csv.writer(f)
-#         writer.writerow(results[0].keys())  # header
-#         for r in results:
-#             writer.writerow(r.values())
-#     print("Saved results to", filename)
-
-# if __name__ == "__main__":
-#     # Output JSON for Node.js
-#     results = asyncio.run(scrape_all_jobs())
-#     save_to_csv(results)
+if __name__ == "__main__":
+    # Output JSON for Node.js
+    results = asyncio.run(scrape_all_jobs())
+    print(json.dumps(results))

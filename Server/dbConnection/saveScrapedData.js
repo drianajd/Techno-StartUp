@@ -22,16 +22,21 @@ export async function checkDuplicate(link) {
 
 export async function saveJob(job) {
   const normalizedLink = normalizeLink(job.link);
+  try {
     await pool.query(
-    `INSERT IGNORE INTO internships (title, company, position, location, site, link)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [
-      job.title || "",
-      job.company || "",
-      job.position || "",
-      job.location || "",
-      job.site || "",
-      normalizedLink
-    ]
+      `INSERT IGNORE INTO internships (title, company, position, location, link, site)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        job.title || "",
+        job.company || "",
+        job.position || "",
+        job.location || "",
+        normalizedLink,
+        job.site || ""
+      ]
     );
+  } catch (err) {
+    console.error("saveJob error:", err);
+    throw err;
+  }
 }

@@ -177,7 +177,7 @@ app.get("/api/jobs", async (req, res) => {
 app.get("/api/jobs/all", async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT id, company, position AS title, link, qualifications AS description, site
+      `SELECT id, company, position AS title, link, location, site
        FROM internships
        ORDER BY id DESC
        LIMIT 100`
@@ -372,7 +372,7 @@ app.get("/api/bookmarks/jobs", async (req, res) => {
 
     // Fetch all bookmarked jobs with their details
     const [bookmarkedJobs] = await pool.query(
-      `SELECT i.id, i.company, i.position AS title, i.link, i.qualifications AS description, i.site, b.saved_at
+      `SELECT i.id, i.company, i.position AS title, i.link, i.location, i.site, b.saved_at
        FROM bookmarks b
        JOIN internships i ON b.internship_id = i.id
        WHERE b.user_id = ?
@@ -619,10 +619,9 @@ cron.schedule("*/30 * * * *", async () => {
   const PORT = process.env.PORT || 5500;
   const server = app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    // Temporarily disabled for testing
-    // runScraper().catch(err => {
-    //   console.error("Initial scraper run failed:", err);
-    // });
+    runScraper().catch(err => {
+      console.error("Initial scraper run failed:", err);
+    });
   });
 
   server.on('error', (err) => {
