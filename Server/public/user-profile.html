@@ -72,7 +72,7 @@
 
             <div class="form-group">
                 <label for="email">Email Address</label>
-                <input type="email" id="email" placeholder="your.email@example.com" required>
+                <input type="email" id="email" placeholder="your.email@example.com" readonly>
             </div>
 
             <div class="form-group">
@@ -80,27 +80,40 @@
                 <input type="text" id="courseYear" placeholder="e.g., BSIT 3" required>
             </div>
 
-            <div class="section-title">Person to Contact in Case of Emergency</div>
+        <div class="section-title">Internship Preferences</div>
 
-            <div class="form-group">
-                <label for="emergencyName">Name</label>
-                <input type="text" id="emergencyName" placeholder="Full Name" required>
-            </div>
+        <div class="form-group">
+            <label for="preferredIndustry">Industry of Interest</label>
+            <select id="preferredIndustry" required>
+                <option value="">Select an Industry</option>
+                <option value="tech">Technology / Software</option>
+                <option value="marketing">Marketing / Creative</option>
+                <option value="finance">Finance / Accounting</option>
+                <option value="hr">Human Resources</option>
+                <option value="bpo">BPO / Call Center</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
 
-            <div class="form-group">
-                <label for="emergencyRelationship">Relationship</label>
-                <input type="text" id="emergencyRelationship" placeholder="e.g., Mother, Father, Guardian" required>
-            </div>
+        <div class="form-group">
+            <label for="preferredRole">Desired Role Type</label>
+            <input type="text" id="preferredRole" placeholder="e.g., Data Analyst, UI/UX Designer, HR Assistant" required>
+        </div>
 
-            <div class="form-group">
-                <label for="emergencyAddress">Address</label>
-                <textarea id="emergencyAddress" rows="2" placeholder="Complete Address" required></textarea>
-            </div>
+        <div class="form-group">
+            <label for="workArrangement">Preferred Work Arrangement</label>
+            <select id="workArrangement" required>
+                <option value="">Select Arrangement</option>
+                <option value="remote">Remote</option>
+                <option value="onsite">On-site</option>
+                <option value="hybrid">Hybrid</option>
+            </select>
+        </div>
 
-            <div class="form-group">
-                <label for="emergencyContact">Contact Number</label>
-                <input type="tel" id="emergencyContact" placeholder="09xxxxxxxxx" pattern="[0-9]{11}" required>
-            </div>
+        <div class="form-group">
+            <label for="minStipend">Minimum Monthly Stipend (Optional)</label>
+            <input type="number" id="minStipend" placeholder="e.g., 5000" min="0">
+        </div>
 
             <div class="form-actions">
                 <button type="submit" class="btn-save">

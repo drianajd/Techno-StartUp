@@ -24,8 +24,8 @@ app.use(cors({
   origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5500'],
   credentials: true
 }));
-app.use(bodyParser.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
 // Debug middleware
@@ -129,8 +129,24 @@ export async function runScraper() {
 
 // --------------------- Initialize ---------------------
 (async () => {
+  console.log('Server startup begin...');
+  
+  // Handle unhandled rejections
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  });
+
+  process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+  });
+
+  console.log('Creating pool...');
   await createPool();
+  console.log('Pool created');
+  
+  console.log('Initializing session...');
   initSession();
+  console.log('Session initialized');
 
 // --------------------- Routes ---------------------
 app.get("/api/test", (req, res) => {
@@ -391,6 +407,183 @@ app.post("/api/bookmarks/clear", async (req, res) => {
   }
 });
 
+// --------------------- User Profile: Get Profile ---------------------
+app.get("/api/profile", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "User not logged in" });
+    }
+
+    const userId = req.session.userId;
+
+    // Get user email from users table
+    const [userRows] = await pool.query(
+      "SELECT email FROM users WHERE id = ?",
+      [userId]
+    );
+
+    // Get profile data
+    const [profileRows] = await pool.query(
+      "SELECT * FROM user_profiles WHERE user_id = ?",
+      [userId]
+    );
+
+    // Get preferences data
+    const [prefRows] = await pool.query(
+      "SELECT * FROM user_preferences WHERE user_id = ?",
+      [userId]
+    );
+
+    const profile = profileRows.length > 0 ? profileRows[0] : {};
+    const preferences = prefRows.length > 0 ? prefRows[0] : {};
+    const email = userRows.length > 0 ? userRows[0].email : '';
+
+    console.log('Retrieved profile date_of_birth from DB:', profile.date_of_birth);
+
+    // Format date as YYYY-MM-DD string to avoid timezone issues
+    if (profile.date_of_birth) {
+      const date = new Date(profile.date_of_birth);
+
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      profile.date_of_birth = `${yyyy}-${mm}-${dd}`;
+    }
+
+    // Convert BLOB to base64 if profile picture exists (check for null/undefined)
+    if (profile.profile_picture && Buffer.isBuffer(profile.profile_picture)) {
+      const base64Picture = profile.profile_picture.toString('base64');
+      profile.profile_picture = `data:image/jpeg;base64,${base64Picture}`;
+    } else {
+      // Ensure profile_picture is null if it doesn't exist
+      profile.profile_picture = null;
+    }
+
+    // Add email to profile object
+    profile.email = email;
+
+    res.json({ success: true, profile, preferences });
+  } catch (err) {
+    console.error("Get profile error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// --------------------- User Profile: Save Profile ---------------------
+app.post("/api/profile", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "User not logged in" });
+    }
+
+    const userId = req.session.userId;
+    const {
+      firstName, middleName, lastName, dateOfBirth, gender, address,
+      contactNumber, courseYear, preferredIndustry, preferredRole,
+      workArrangement, minStipend, profilePicture
+    } = req.body;
+
+    console.log('Profile update received:', { firstName, lastName, dateOfBirth });
+
+    // Ensure dateOfBirth is in proper format for MySQL DATE type
+    let dbDateOfBirth = dateOfBirth;
+    if (dateOfBirth && !dateOfBirth.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // If date is not in YYYY-MM-DD format, try to parse it
+      console.warn('Date format incorrect:', dateOfBirth);
+    }
+    console.log('Database will save dateOfBirth as:', dbDateOfBirth);
+
+    // Process profile picture if provided
+    let profilePictureBuffer = null;
+    if (profilePicture && profilePicture !== 'null') {
+      try {
+        // Remove data:image/...;base64, prefix if present
+        const base64String = profilePicture.includes(',') 
+          ? profilePicture.split(',')[1] 
+          : profilePicture;
+        profilePictureBuffer = Buffer.from(base64String, 'base64');
+        console.log('Profile picture processed, size:', profilePictureBuffer.length);
+      } catch (err) {
+        console.warn('Could not process profile picture:', err.message);
+      }
+    }
+
+    // Check if profile exists
+    const [existingProfile] = await pool.query(
+      "SELECT id FROM user_profiles WHERE user_id = ?",
+      [userId]
+    );
+
+    if (existingProfile.length > 0) {
+      // Update existing profile
+      if (profilePictureBuffer) {
+        await pool.query(
+          `UPDATE user_profiles SET first_name = ?, middle_name = ?, last_name = ?,
+           date_of_birth = ?, gender = ?, address = ?, contact_number = ?,
+           course_year = ?, profile_picture = ? WHERE user_id = ?`,
+          [firstName, middleName, lastName, dbDateOfBirth, gender, address,
+           contactNumber, courseYear, profilePictureBuffer, userId]
+        );
+      } else {
+        await pool.query(
+          `UPDATE user_profiles SET first_name = ?, middle_name = ?, last_name = ?,
+           date_of_birth = ?, gender = ?, address = ?, contact_number = ?,
+           course_year = ? WHERE user_id = ?`,
+          [firstName, middleName, lastName, dbDateOfBirth, gender, address,
+           contactNumber, courseYear, userId]
+        );
+      }
+    } else {
+      // Insert new profile
+      if (profilePictureBuffer) {
+        await pool.query(
+          `INSERT INTO user_profiles (user_id, first_name, middle_name, last_name,
+           date_of_birth, gender, address, contact_number, course_year, profile_picture)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [userId, firstName, middleName, lastName, dbDateOfBirth, gender, address,
+           contactNumber, courseYear, profilePictureBuffer]
+        );
+      } else {
+        await pool.query(
+          `INSERT INTO user_profiles (user_id, first_name, middle_name, last_name,
+           date_of_birth, gender, address, contact_number, course_year)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [userId, firstName, middleName, lastName, dbDateOfBirth, gender, address,
+           contactNumber, courseYear]
+        );
+      }
+    }
+
+    // Check if preferences exist
+    const [existingPref] = await pool.query(
+      "SELECT id FROM user_preferences WHERE user_id = ?",
+      [userId]
+    );
+
+    if (existingPref.length > 0) {
+      // Update existing preferences
+      await pool.query(
+        `UPDATE user_preferences SET preferred_industry = ?, preferred_role = ?,
+         work_arrangement = ?, min_stipend = ? WHERE user_id = ?`,
+        [preferredIndustry, preferredRole, workArrangement, minStipend, userId]
+      );
+    } else {
+      // Insert new preferences
+      await pool.query(
+        `INSERT INTO user_preferences (user_id, preferred_industry, preferred_role,
+         work_arrangement, min_stipend) VALUES (?, ?, ?, ?, ?)`,
+        [userId, preferredIndustry, preferredRole, workArrangement, minStipend]
+      );
+    }
+
+    console.log(`Profile updated for user ${userId}`);
+    res.json({ success: true, message: "Profile updated successfully" });
+  } catch (err) {
+    console.error("Save profile error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // --------------------- Error & 404 ---------------------
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
@@ -423,12 +616,15 @@ cron.schedule("*/30 * * * *", async () => {
 });
 
   const PORT = process.env.PORT || 5500;
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    // console.log(`Test API: http://localhost:${PORT}/api/test`);
-    // console.log(`Test email: http://localhost:${PORT}/test-email`);
-    runScraper().catch(err => {
-    console.error("Initial scraper run failed:", err);
-    });
+    // Temporarily disabled for testing
+    // runScraper().catch(err => {
+    //   console.error("Initial scraper run failed:", err);
+    // });
+  });
+
+  server.on('error', (err) => {
+    console.error('Server error:', err);
   });
 })();
