@@ -516,7 +516,7 @@ footer {
 }
 
 /* Responsive - Larger screens */
-@media (min-width: 480px) {
+@media (min-width: 320px) {
   .header-bg {
     padding: 24px 24px 28px;
   }
@@ -537,6 +537,17 @@ footer {
   .job-card {
     min-width: 320px;
     position: relative;
+    display: flex;
+    flex-direction: column;
+  }
 
+  .heart-bookmark-btn {
+    position: absolute;
+    top: -7px;
+    right: -15px;
+    padding: 6px;
+    background: white;
+    border-radius: 50%;
+    z-index: 10;
   }
 }
