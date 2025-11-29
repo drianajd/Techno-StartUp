@@ -177,7 +177,7 @@ app.get("/api/jobs", async (req, res) => {
 app.get("/api/jobs/all", async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT id, company, position AS title, link, location, site
+      `SELECT id, company, title, link, location, site
        FROM internships
        ORDER BY id DESC
        LIMIT 100`
