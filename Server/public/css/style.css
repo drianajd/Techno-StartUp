@@ -536,5 +536,8 @@ footer {
 
   .job-card {
     min-width: 320px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
   }
 }

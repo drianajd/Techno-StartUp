@@ -479,5 +479,6 @@ body {
     .mobile-container {
         border-radius: 0;
         height: 100vh;
+        position: relative;
     }
 }
