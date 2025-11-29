@@ -56,7 +56,6 @@ async function loadSuggestedInternships() {
     try {
         const res = await fetch('/api/jobs/suggested'); 
         
-        // NEW: Check for non-200 HTTP status (e.g., 404 or 500)
         if (!res.ok) {
             const errorData = await res.json().catch(() => ({ error: res.statusText || 'Unknown server error' }));
             throw new Error(`API failed (Status: ${res.status}). Error: ${errorData.error}`);
