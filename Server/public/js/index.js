@@ -34,6 +34,90 @@ function initializeApp() {
     initializeFilterTags();
     initializeBottomNav();
     initializeJobCards();
+    loadSuggestedInternships();
+}
+
+
+// Load suggested jobs based on user preference
+async function loadSuggestedInternships() {
+    const container = document.getElementById('suggestedJobContainer');
+    if (!container) return; 
+
+    // Show loading state
+    container.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Finding suggested internships...</p>
+        </div>
+    `;
+
+    try {
+        const res = await fetch('/api/jobs/suggested'); 
+        
+        // NEW: Check for non-200 HTTP status (e.g., 404 or 500)
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ error: res.statusText || 'Unknown server error' }));
+            throw new Error(`API failed (Status: ${res.status}). Error: ${errorData.error}`);
+        }
+        
+        const data = await res.json();
+        const suggestedJobs = data.jobs || [];
+
+        container.innerHTML = '';
+        container.classList.add('jobs-scroll');
+
+        if (suggestedJobs.length === 0) {
+            container.innerHTML = `<div class="text-center py-4" style="min-width: 300px;"><i class="bi bi-star" style="font-size: 3rem; color: #ddd;"></i><p class="mt-3 text-muted">No suggestions found. Try setting your preference or check job data.</p></div>`;
+            initializeJobCards();
+            initializeBookmarks();
+            return;
+        }
+
+        suggestedJobs.forEach((job) => {
+            const companyDomain = job.company.split(' ')[0].toLowerCase();
+            const logoUrl = `https://logo.clearbit.com/${companyDomain}.com`;
+
+            const card = document.createElement('div');
+            card.className = 'job-card'; 
+            
+            const tagsHtml = job.position ? `<span class="job-tag">${escapeHtml(job.position)}</span>` : '';
+            
+            card.innerHTML = `
+                <button class="heart-bookmark-btn" data-job-id="${job.id}" data-job-title="${escapeHtml(job.title)}" aria-label="Bookmark job">
+                    <i class="bi bi-heart"></i>
+                </button>
+                <a href="${job.link}" target="_blank" class="job-link">
+                    <div class="job-card-header">
+                        <img src="${logoUrl}" alt="${job.company} Logo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
+                        <div class="job-card-info">
+                            <h3>${escapeHtml(job.title)}</h3>
+                            <p>${escapeHtml(job.company)} • ${escapeHtml(job.location || 'Remote')}</p>
+                        </div>
+                    </div>
+                    <div class="job-tags">
+                        ${tagsHtml}
+                        <span class="job-tag site-tag">${escapeHtml(job.site || 'Unknown')}</span>
+                    </div>
+                </a>
+            `;
+            container.appendChild(card);
+        });
+
+        initializeJobCards();
+        initializeBookmarks(); 
+
+    } catch (err) {
+        console.error('Error fetching suggested jobs:', err);
+        container.innerHTML = `
+            <div class="alert alert-danger text-center py-4" role="alert" style="min-width: 300px;">
+                <i class="bi bi-exclamation-triangle"></i>
+                <p class="mb-0 mt-2">⚠️ Error loading suggestions.</p>
+                <p style="font-size: 0.8rem; color: #721c24;">${err.message || 'Network/Server Error'}</p>
+            </div>
+        `;
+    }
 }
 
 // Load jobs from API
@@ -54,6 +138,13 @@ async function loadJobs() {
     
     try {
         const res = await fetch('/api/jobs/all');
+
+        // Check for non-200 HTTP status
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ error: res.statusText || 'Unknown server error' }));
+            throw new Error(`API failed (Status: ${res.status}). Error: ${errorData.error}`);
+        }
+
         const data = await res.json();
         const jobs = data.jobs || [];
         
@@ -324,7 +415,7 @@ function initializeBottomNav() {
 
 // Job card interactions
 function initializeJobCards() {
-    const jobItems = document.querySelectorAll('.job-item');
+    const jobItems = document.querySelectorAll('.job-item, .job-card');
     const featuredCards = document.querySelectorAll('.job-card');
     
     // Add hover effect analytics

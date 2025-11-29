@@ -585,6 +585,54 @@ app.post("/api/profile", async (req, res) => {
   }
 });
 
+// --------------------- Jobs: Get Suggested Internships ---------------------
+app.get("/api/jobs/suggested", async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    let query, params;
+
+    if (!userId) {
+      // Case 1: User is not logged in - return 10 random jobs
+      query = `SELECT id, title, company, position, location, link, site FROM internships ORDER BY RAND() LIMIT 10`;
+      params = [];
+    } else {
+      // 1. Get user's preferred position from user_preferences
+      const [prefRows] = await pool.query(
+        "SELECT preferred_position FROM user_preferences WHERE user_id = ?",
+        [userId]
+      );
+
+      const preferredPosition = prefRows.length > 0 ? prefRows[0].preferred_position : null;
+
+      if (!preferredPosition || preferredPosition.trim() === '') {
+        // Case 2: Logged in but no preference set - return 10 most recent jobs
+        query = `SELECT id, title, company, position, location, link, site FROM internships ORDER BY created_at DESC LIMIT 10`;
+        params = [];
+      } else {
+        // Case 3: Logged in with a preference - search for matching jobs
+        const searchPosition = `%${preferredPosition.trim()}%`; 
+        
+        query = `
+          SELECT id, title, company, position, location, link, site 
+          FROM internships 
+          WHERE COALESCE(position, title) LIKE ? 
+          ORDER BY created_at DESC 
+          LIMIT 10
+        `;
+        params = [searchPosition];
+      }
+    }
+    
+    const [suggestedJobs] = await pool.query(query, params);
+    res.json({ jobs: suggestedJobs });
+
+  } catch (err) {
+    console.error("Suggested jobs API error:", err);
+    res.status(500).json({ error: "Server error fetching suggested internships." });
+  }
+});
+
+
 // --------------------- Error & 404 ---------------------
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
