@@ -153,12 +153,13 @@ body {
 
 .jobs-scroll {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   overflow-x: auto;
-  padding-bottom: 8px;
+  padding: 8px 6px 12px;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  align-items: flex-start;
 }
 
 .jobs-scroll::-webkit-scrollbar {
@@ -166,7 +167,9 @@ body {
 }
 
 .job-card {
-  min-width: 280px;
+  width: 280px;
+  min-width: 220px;
+  max-width: 360px;
   background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
   border-radius: 16px;
   padding: 20px;
@@ -341,10 +344,10 @@ body {
 
 /* Job List Styles */
 .job-list {
-  padding: 8px;
+  padding: 8px 12px;
   background: #F8F9FA;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(1, 1fr);
   gap: 12px;
 }
 
@@ -363,6 +366,7 @@ body {
   text-align: center;
   position: relative;
   overflow: visible;
+  max-width: 100%;
 }
 
 .job-item:active {
@@ -516,6 +520,7 @@ footer {
 }
 
 /* Responsive - Larger screens */
+/*  small devices — phones */
 @media (min-width: 320px) {
   .header-bg {
     padding: 24px 24px 28px;
@@ -529,13 +534,13 @@ footer {
   }
 
   .job-list {
-    padding: 12px 24px;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    padding: 12px 16px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
   }
 
   .job-card {
-    min-width: 320px;
+    width: 320px;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -549,5 +554,50 @@ footer {
     background: white;
     border-radius: 50%;
     z-index: 10;
+  }
+}
+
+/* compact styling for very small screens */
+@media (max-width: 479px) {
+  .jobs-scroll {
+    gap: 10px;
+    padding: 6px;
+  }
+
+  .job-card {
+    width: 240px;
+    min-width: 220px;
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .job-card-header img,
+  .job-item img {
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+  }
+
+  .job-item h3 {
+    font-size: 12px;
+  }
+}
+
+/*  tablets and up - 900px and wider */
+@media (min-width: 900px) {
+  .job-list {
+    grid-template-columns: repeat(3, 1fr);
+    padding: 12px 24px;
+    gap: 16px;
+  }
+
+  .jobs-scroll {
+    gap: 16px;
+    padding: 10px 12px 16px;
+  }
+
+  .job-card {
+    width: 360px;
+    min-width: 300px;
   }
 }
