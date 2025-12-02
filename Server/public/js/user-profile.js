@@ -124,6 +124,15 @@ function setupPhotoUpload() {
                 const userData = JSON.parse(localStorage.getItem('userProfile')) || {};
                 userData.profilePicture = imageData;
                 localStorage.setItem('userProfile', JSON.stringify(userData));
+                // Update header profile image in this tab immediately
+                try {
+                    const profilePicContainer = document.getElementById('profilePicContainer');
+                    if (profilePicContainer) {
+                        profilePicContainer.innerHTML = `<img src="${imageData}" alt="Profile" class="profile-pic-img">`;
+                        profilePicContainer.style.cursor = 'pointer';
+                        profilePicContainer.onclick = function() { window.location.href = 'user-profile.html'; };
+                    }
+                } catch (e) { /* ignore DOM errors */ }
             };
             
             reader.readAsDataURL(file);

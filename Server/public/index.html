@@ -6,7 +6,6 @@
   <title>Job Dashboard</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <link rel="stylesheet" href="./css/style.css">
-  <script defer src="./js/avatar.js"></script>
 </head>
 <body>
   <div class="header-bg">
@@ -132,6 +131,26 @@ async function loadJobs() {
   setInterval(loadJobs, 5 * 60 * 1000);
   
 </script> -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const profilePicContainer = document.getElementById("profilePicContainer");
+    if (!profilePicContainer) return;
+
+    const userData = JSON.parse(localStorage.getItem("userProfile")) || {};
+
+    if (userData.profilePicture) {
+        // show dynamic profile picture
+        profilePicContainer.innerHTML =
+            `<img src="${userData.profilePicture}" 
+                  alt="Profile Picture" 
+                  class="profile-pic-img">`;
+    } else {
+        // fallback icon
+        profilePicContainer.innerHTML = `<i class="bi bi-person"></i>`;
+    }
+});
+</script>
+
 <script src="./js/index.js"></script>
 
 

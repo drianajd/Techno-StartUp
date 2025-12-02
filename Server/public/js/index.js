@@ -35,6 +35,49 @@ function initializeApp() {
     initializeBottomNav();
     initializeJobCards();
     loadSuggestedInternships();
+    // Update header avatar from localStorage or server so index (/) shows the profile image
+    updateHeaderProfilePic();
+}
+
+// Update header avatar from localStorage or fallback to server profile picture
+async function updateHeaderProfilePic() {
+    const profilePicContainer = document.getElementById('profilePicContainer');
+    if (!profilePicContainer) return;
+
+    try {
+        const localProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+        if (localProfile && localProfile.profilePicture) {
+            profilePicContainer.innerHTML = `<img src="${localProfile.profilePicture}" alt="Profile" class="profile-pic-img">`;
+            profilePicContainer.style.cursor = 'pointer';
+            profilePicContainer.onclick = function() { window.location.href = 'user-profile.html'; };
+            return;
+        }
+    } catch (err) {
+        // ignore
+    }
+
+    // If no local profile picture, attempt to fetch from server (if logged in)
+    try {
+        const res = await fetch('/api/me', { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.loggedIn && data.user && data.user.profile_picture) {
+            profilePicContainer.innerHTML = `<img src="${data.user.profile_picture}" alt="Profile" class="profile-pic-img">`;
+            profilePicContainer.style.cursor = 'pointer';
+            profilePicContainer.onclick = function() { window.location.href = 'user-profile.html'; };
+            return;
+        }
+
+        // No image available, show user initials
+        const name = (data.user && (data.user.username || data.user.email)) || 'U';
+        const initials = name.split(' ').map(w => w[0] || '').join('').substring(0,2).toUpperCase();
+        const bgColor = getColorForName(name);
+        profilePicContainer.innerHTML = `<div class="initials-avatar" style="background: ${bgColor};">${initials}</div>`;
+        profilePicContainer.style.cursor = 'pointer';
+        profilePicContainer.onclick = function() { window.location.href = 'user-profile.html'; };
+    } catch (err) {
+        // ignore
+    }
 }
 
 
@@ -617,29 +660,7 @@ async function checkAuth() {
         }
 
         // generate initials of user
-        const profilePicContainer = document.getElementById("profilePicContainer");
-        if (profilePicContainer) {
-            const name = data.user.username || data.user.email || "U";
-            const initials = name
-                .split(" ")                
-                .map(word => word[0])     
-                .join("")                  
-                .substring(0, 2)           
-                .toUpperCase();
-
-            const bgColor = getColorForName(name);
-            profilePicContainer.innerHTML = `
-                <div class="initials-avatar" style="background: ${bgColor}; cursor: pointer;">
-                    ${initials}
-                </div>
-            `;
-            
-            // Make profile picture clickable - navigate to profile page
-            profilePicContainer.style.cursor = 'pointer';
-            profilePicContainer.addEventListener('click', function() {
-                window.location.href = 'user-profile.html';
-            });
-        }
+        // The header avatar is handled by updateHeaderProfilePic(); no need to duplicate
     
 
         return data.loggedIn;
@@ -725,7 +746,7 @@ initSmoothScroll();
 // Listen for localStorage changes from other tabs/windows and sync heart states
 window.addEventListener('storage', (e) => {
     try {
-        if (e.key !== 'bookmarkedJobs') return;
+        if (e.key !== 'bookmarkedJobs' && e.key !== 'userProfile') return;
 
         const newBookmarks = JSON.parse(e.newValue || '[]');
 
@@ -746,6 +767,21 @@ window.addEventListener('storage', (e) => {
                 icon.classList.add('bi-heart');
             }
         });
+        // If profile changed in another tab, update header avatar
+        if (e.key === 'userProfile') {
+            try {
+                const profile = JSON.parse(e.newValue || '{}');
+                const profilePicContainer = document.getElementById('profilePicContainer');
+                if (!profilePicContainer) return;
+                if (profile.profilePicture) {
+                    profilePicContainer.innerHTML = `<img src="${profile.profilePicture}" alt="Profile" class="profile-pic-img">`;
+                    profilePicContainer.style.cursor = 'pointer';
+                    profilePicContainer.onclick = function() { window.location.href = 'user-profile.html'; };
+                } else {
+                    checkAuth().catch(() => {});
+                }
+            } catch (pe) { console.error('Failed to parse userProfile storage event', pe); }
+        }
     } catch (err) {
         console.error('Error syncing bookmarks from storage event:', err);
     }

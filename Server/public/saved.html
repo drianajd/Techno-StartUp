@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Saved Jobs</title>
     <link rel="stylesheet" href="./css/saved.css">
-    <script defer src="./js/avatar.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -303,8 +302,75 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchBookmarkedJobs();
+            // Update header profile pic from localStorage if available, fallback to server if logged in
+            (async function updateHeaderProfilePic() {
+                const profilePicContainer = document.getElementById('profilePicContainer');
+                if (!profilePicContainer) return;
+
+                try {
+                    const localProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                    if (localProfile && localProfile.profilePicture) {
+                        profilePicContainer.innerHTML = `<img src="${localProfile.profilePicture}" alt="Profile" class="profile-pic-img">`;
+                        profilePicContainer.style.cursor = 'pointer';
+                        profilePicContainer.onclick = () => window.location.href = 'user-profile.html';
+                        return;
+                    }
+                } catch (e) { /* ignore */ }
+
+                // fallback: try server
+                try {
+                    const res = await fetch('/api/me', { credentials: 'include' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.loggedIn && data.user && data.user.profile_picture) {
+                            profilePicContainer.innerHTML = `<img src="${data.user.profile_picture}" alt="Profile" class="profile-pic-img">`;
+                            profilePicContainer.style.cursor = 'pointer';
+                            profilePicContainer.onclick = () => window.location.href = 'user-profile.html';
+                        }
+                    }
+                } catch (err) { /* ignore errors */ }
+            })();
+        });
+        // Listen for profile changes in other tabs and update header avatar
+        window.addEventListener('storage', (e) => {
+            if (e.key !== 'userProfile') return;
+            try {
+                const profile = JSON.parse(e.newValue || '{}');
+                const profilePicContainer = document.getElementById('profilePicContainer');
+                if (!profilePicContainer) return;
+                if (profile.profilePicture) {
+                    profilePicContainer.innerHTML = `<img src="${profile.profilePicture}" alt="Profile" class="profile-pic-img">`;
+                    profilePicContainer.style.cursor = 'pointer';
+                    profilePicContainer.onclick = () => window.location.href = 'user-profile.html';
+                } else {
+                    // If no profile picture, you can optionally fetch /api/me or revert to default
+                    // For simplicity, we'll just remove any img and keep the original placeholder
+                    const img = profilePicContainer.querySelector('img');
+                    if (img) img.remove();
+                }
+            } catch (err) { console.warn('Error parsing userProfile storage event', err); }
         });
     </script>
+    <script>
+document.addEventListener("DOMContentLoaded", () => {
+    const profilePicContainer = document.getElementById("profilePicContainer");
+    if (!profilePicContainer) return;
+
+    const userData = JSON.parse(localStorage.getItem("userProfile")) || {};
+
+    if (userData.profilePicture) {
+        // show dynamic profile picture
+        profilePicContainer.innerHTML =
+            `<img src="${userData.profilePicture}" 
+                  alt="Profile Picture" 
+                  class="profile-pic-img">`;
+    } else {
+        // fallback icon
+        profilePicContainer.innerHTML = `<i class="bi bi-person"></i>`;
+    }
+});
+</script>
+
     <script src="./js/index.js"></script>
 </body>
 </html>
