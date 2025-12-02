@@ -119,60 +119,13 @@ async function loadSuggestedInternships() {
     }
 }
 
-// Global cache for jobs
-let allJobs = [];
-let activeCategoryFilter = null; // currently selected category filter
-// Map categories to qualification keywords for more robust matching
-const categoryKeywordsMap = {
-    'IT intern': [
-        'computer science', 'computer engineering', 'information technology', 'informatics', 'software', 'programming', 'coding', 'systems'
-    ],
-    'Marketing': [
-        'marketing', 'communications', 'advertising', 'brand'
-    ],
-    'HR internship': [
-        'human resource', 'human resources', 'hr', 'people'
-    ],
-    'Business Internship': [
-        'business', 'management', 'commerce', 'finance', 'accounting', 'entrepreneurship'
-    ],
-    'Developer Internship': [
-        'developer', 'software engineer', 'software', 'programmer', 'development'
-    ]
-};
-
-function normalizeForMatch(s) {
-    return (s || '').toLowerCase().replace(/[\'\"\,\(\)\.\-\/]/g, ' ');
-}
-
-function escapeRegExp(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
-}
-
-function matchesKeyword(text, keyword) {
-    const q = (text || '').toLowerCase();
-    const k = (keyword || '').toLowerCase().trim();
-    if (!k) return false;
-    // If keyword is multi-word, use simple includes
-    if (k.includes(' ')) {
-        return q.includes(k);
-    }
-    // Use word boundary regex for single-word keyword to prevent false positives
-    try {
-        const regex = new RegExp('\\b' + escapeRegExp(k) + '\\b', 'i');
-        return regex.test(q);
-    } catch (err) {
-        // Fallback
-        return q.includes(k);
-    }
-}
-
 // Load jobs from API
 async function loadJobs() {
     const container = document.getElementById('jobContainer');
     const updateTime = document.getElementById('updateTime');
     const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
 
+    // Show loading state
     container.innerHTML = `
         <div class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
@@ -181,25 +134,75 @@ async function loadJobs() {
             <p class="mt-2 text-muted">Fetching latest internships...</p>
         </div>
     `;
-
+    
     try {
         const res = await fetch('/api/jobs/all');
 
+        // Check for non-200 HTTP status
         if (!res.ok) {
-            const errorData = await res.json().catch(() => ({ error: res.statusText }));
+            const errorData = await res.json().catch(() => ({ error: res.statusText || 'Unknown server error' }));
             throw new Error(`API failed (Status: ${res.status}). Error: ${errorData.error}`);
         }
 
         const data = await res.json();
-        allJobs = data.jobs || [];
+        const jobs = data.jobs || [];
+        
+        container.innerHTML = '';
 
-        // ✔️ handles filtering and displays everything correctly
-        renderJobs();
+        // Filter jobs based on search term
+        const filtered = jobs.filter(job =>
+            job.title.toLowerCase().includes(searchTerm) ||
+            job.company.toLowerCase().includes(searchTerm)
+        );
 
-        updateTime.innerHTML = `
-            <i class="bi bi-arrow-clockwise"></i> Last updated: 
-            ${new Date().toLocaleTimeString()}
-        `;
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox" style="font-size: 3rem; color: #ddd;"></i>
+                    <p class="mt-3 text-muted">No internship listings found.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Create job items
+        filtered.forEach(job => {
+            const companyDomain = job.company.split(' ')[0].toLowerCase();
+            const logoUrl = `https://logo.clearbit.com/${companyDomain}.com`;
+
+            const item = document.createElement('div');
+            item.className = 'job-item';
+            item.innerHTML = `
+                <button class="heart-bookmark-btn" data-job-id="${job.id}" data-job-title="${escapeHtml(job.title)}" aria-label="Bookmark job">
+                    <i class="bi bi-heart"></i>
+                </button>
+                <a href="${job.link}" target="_blank" class="job-link">
+                    <div class="job-card-wrapper">
+                        <img src="${logoUrl}" 
+                             alt="${job.company} Logo" 
+                             class="job-logo"
+                             onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
+                    </div>
+                    <div class="job-details flex-grow-1">
+                        <h3>${escapeHtml(job.title)}</h3>
+                        <p class="company-location">
+                            <i class="bi bi-building"></i> ${escapeHtml(job.company)}
+                        </p>
+                        <p class="site">
+                            <i class="bi bi-link-45deg"></i> ${escapeHtml(job.site)}
+                        </p>
+                    </div>
+                </a>
+            `;
+            
+            container.appendChild(item);
+        });
+
+        // Re-initialize bookmark functionality for new items
+        initializeBookmarks();
+        
+        // Update timestamp
+        updateTime.innerHTML = `<i class="bi bi-arrow-clockwise"></i> Last updated: ${new Date().toLocaleTimeString()}`;
         
     } catch (err) {
         console.error('Error fetching jobs:', err);
@@ -211,7 +214,6 @@ async function loadJobs() {
         `;
     }
 }
-
 
 // Auto-refresh jobs every 5 minutes
 setInterval(loadJobs, 5 * 60 * 1000);
@@ -350,142 +352,25 @@ function initializeFilterTags() {
     
     filterTags.forEach(tag => {
         tag.addEventListener('click', function() {
-            // If clicking the active tag, toggle to all
-            const clickedValue = this.textContent.trim();
-            const isSame = activeCategoryFilter && activeCategoryFilter.toLowerCase() === clickedValue.toLowerCase();
-
-            // Remove active state from all and then set only the selected one (or none when toggled)
+            // Remove active class from all tags
             filterTags.forEach(t => t.classList.remove('active'));
-            if (!isSame) {
-                this.classList.add('active');
-                activeCategoryFilter = clickedValue;
-            } else {
-                activeCategoryFilter = null;
-            }
-
-            const filterValue = activeCategoryFilter;
+            
+            // Add active class to clicked tag
+            this.classList.add('active');
+            
+            const filterValue = this.textContent;
             console.log('Filtering by:', filterValue);
-
+            
             // Animation feedback
             this.style.transform = 'scale(0.95)';
             setTimeout(() => {
                 this.style.transform = 'scale(1)';
             }, 100);
-
-            filterJobsByCategory(filterValue);
+            
+            // TODO: Implement actual filtering logic
+            // filterJobsByCategory(filterValue);
         });
     });
-}
-
-// Apply filters (search input & category) and render job items
-function renderJobs() {
-    const container = document.getElementById('jobContainer');
-    const updateTime = document.getElementById('updateTime');
-    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
-
-    if (!container) return;
-    container.innerHTML = '';
-
-    // Filter by search term first
-    let jobsToRender = allJobs.filter(job =>
-        (job.title || '').toLowerCase().includes(searchTerm) ||
-        (job.company || '').toLowerCase().includes(searchTerm)
-    );
-
-
-    // If a category filter is active, match against the qualification field only
-    if (activeCategoryFilter) {
-        const categoryText = activeCategoryFilter.trim();
-
-        // Try to map by exact category key (case-insensitive), otherwise fallback to categoryText
-        const matchedKey = Object.keys(categoryKeywordsMap).find(k => k.toLowerCase() === categoryText.toLowerCase());
-        const keywords = matchedKey ? categoryKeywordsMap[matchedKey].map(normalizeForMatch) : [normalizeForMatch(categoryText)];
-
-        // Logging for debugging
-        console.debug('[Filter] Category:', categoryText, 'Keywords:', keywords);
-
-        jobsToRender = jobsToRender.filter(job => {
-            const qualification = normalizeForMatch(job.qualification || '');
-            const title = normalizeForMatch(job.title || '');
-            // Find if any keyword is included in the qualification (respecting word boundaries)
-            const matchedQualification = keywords.some(key => matchesKeyword(qualification, key));
-            const matchedTitle = keywords.some(key => matchesKeyword(title, key));
-
-            if (matchedQualification) return true;
-            // Fallback to title if qualification didn't match
-            if (matchedTitle) return true;
-
-            return false;
-        });
-
-        console.debug('[Filter] Matched jobs count:', jobsToRender.length);
-        if (jobsToRender.length === 0) {
-            // Provide helpful debugging information (sample qualifications from all jobs)
-            const sampleQuals = allJobs.slice(0, 5).map(j => ({id: j.id, qual: normalizeForMatch(j.qualification || '')}));
-            console.info(`[Filter] No jobs matched category=${categoryText}; sample qualifications:`, sampleQuals);
-        }
-    }
-
-
-
-    if (!jobsToRender || jobsToRender.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-5">
-                <i class="bi bi-inbox" style="font-size: 3rem; color: #ddd;"></i>
-                <p class="mt-3 text-muted">No internship listings found.</p>
-            </div>
-        `;
-        return;
-    }
-
-    jobsToRender.forEach(job => {
-        const companyDomain = job.company.split(' ')[0].toLowerCase();
-        const logoUrl = `https://logo.clearbit.com/${companyDomain}.com`;
-
-        const item = document.createElement('div');
-        item.className = 'job-item';
-        // store qualification as data attribute to be able to use it later if needed
-        item.dataset.qualification = job.qualification || '';
-        item.innerHTML = `
-            <button class="heart-bookmark-btn" data-job-id="${job.id}" data-job-title="${escapeHtml(job.title)}" aria-label="Bookmark job">
-                <i class="bi bi-heart"></i>
-            </button>
-            <a href="${job.link}" target="_blank" class="job-link">
-                <div class="job-card-wrapper">
-                    <img src="${logoUrl}" 
-                         alt="${job.company} Logo" 
-                         class="job-logo"
-                         onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
-                </div>
-                <div class="job-details flex-grow-1">
-                    <h3>${escapeHtml(job.title)}</h3>
-                    <p class="company-location">
-                        <i class="bi bi-building"></i> ${escapeHtml(job.company)}
-                    </p>
-                    <p class="site">
-                        <i class="bi bi-link-45deg"></i> ${escapeHtml(job.site)}
-                    </p>
-                </div>
-            </a>
-        `;
-
-        container.appendChild(item);
-    });
-
-    initializeBookmarks();
-    // Update timestamp
-    if (updateTime) updateTime.innerHTML = `<i class="bi bi-arrow-clockwise"></i> Last updated: ${new Date().toLocaleTimeString()}`;
-}
-
-// Filter helper that sets activeCategoryFilter and re-renders
-function filterJobsByCategory(filterValue) {
-    if (!filterValue) {
-        // Reset filter and show all
-        activeCategoryFilter = null;
-    } else {
-        activeCategoryFilter = filterValue.trim();
-    }
-    renderJobs();
 }
 
 // Bottom navigation
