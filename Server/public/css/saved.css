@@ -25,6 +25,13 @@ body {
     margin-bottom: 20px;
 }
 
+.profile-pic {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: 2px solid white;
+    cursor: pointer;
+}
 .user-info-left {
     display: flex;
     align-items: center;
