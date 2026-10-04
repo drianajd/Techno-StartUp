@@ -230,7 +230,7 @@ app.get("/api/jobs/all", async (req, res) => {
               position, link, location, site, logo
        FROM internships
        ORDER BY id DESC
-       LIMIT 100`
+       LIMIT 1000`
     );
     res.json({ jobs: rows });
   } catch (err) {

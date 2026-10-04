@@ -168,22 +168,29 @@ let activeCategoryFilter = null; // currently selected category filter
 // Map categories to qualification keywords for more robust matching
 const categoryKeywordsMap = {
     'IT intern': [
-        'computer science', 'computer engineering', 'information technology', 'informatics', 'software', 'programming', 'coding', 'systems'
+        'it', 'information technology', 'computer', 'software', 'program', 'coding', 'system', 'network',
+        'tech', 'data', 'cyber', 'security', 'cloud', 'devops', 'web', 'mobile', 'app', 'database', 'qa',
+        'quality assurance', 'tester', 'support', 'help desk', 'infrastructure', 'ai', 'machine learning',
+        'automation', 'ui', 'ux', 'full stack', 'frontend', 'backend', 'digital', 'developer', 'engineer'
     ],
     'Marketing': [
-        'marketing', 'communications', 'advertising', 'brand'
+        'marketing', 'communication', 'advertis', 'brand', 'social media', 'content', 'seo', 'digital',
+        'copywrit', 'creative', 'media', 'public relations', 'pr', 'sales', 'graphic', 'video', 'campaign'
     ],
     'HR internship': [
-        'human resource', 'human resources', 'hr', 'people'
+        'hr', 'human resource', 'people', 'talent', 'recruit', 'payroll', 'hris', 'employee', 'admin', 'training'
     ],
     'Business Internship': [
-        'business', 'management', 'commerce', 'finance', 'accounting', 'entrepreneurship'
+        'business', 'management', 'commerce', 'financ', 'account', 'entrepreneur', 'operations', 'audit',
+        'analyst', 'sales', 'procurement', 'purchasing', 'sourcing', 'logistics', 'supply chain', 'project',
+        'customer', 'assistant', 'admin', 'coordinator', 'executive', 'bookkeep', 'research'
     ],
     'Developer Internship': [
-        'developer', 'software engineer', 'software', 'programmer', 'development'
+        'develop', 'software', 'program', 'engineer', 'coder', 'coding', 'full stack', 'frontend', 'backend',
+        'web', 'mobile', 'app', 'java', 'python', 'javascript', 'php', 'react', 'node', 'laravel', '.net',
+        'android', 'ios', 'devops', 'qa', 'tester', 'wordpress', 'game'
     ]
 };
-
 function normalizeForMatch(s) {
     return (s || '').toLowerCase().replace(/[\'\"\,\(\)\.\-\/]/g, ' ');
 }
@@ -196,20 +203,10 @@ function matchesKeyword(text, keyword) {
     const q = (text || '').toLowerCase();
     const k = (keyword || '').toLowerCase().trim();
     if (!k) return false;
-    // If keyword is multi-word, use simple includes
-    if (k.includes(' ')) {
-        return q.includes(k);
-    }
-    // Use word boundary regex for single-word keyword to prevent false positives
-    try {
-        const regex = new RegExp('\\b' + escapeRegExp(k) + '\\b', 'i');
-        return regex.test(q);
-    } catch (err) {
-        // Fallback
-        return q.includes(k);
-    }
+    // Keyword must start at a word boundary ("develop" matches "developer"); short keywords must match whole words
+    const start = '(^|[^a-z0-9])' + escapeRegExp(k);
+    return new RegExp(k.length > 3 ? start : start + '([^a-z0-9]|$)', 'i').test(q);
 }
-
 // Load jobs from API
 async function loadJobs() {
     const container = document.getElementById('jobContainer');
@@ -424,7 +421,7 @@ function initializeFilterTags() {
 function renderJobs() {
     const container = document.getElementById('jobContainer');
     const updateTime = document.getElementById('updateTime');
-    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+    const searchTerm = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
 
     if (!container) return;
     container.innerHTML = '';
@@ -447,20 +444,13 @@ function renderJobs() {
         // Logging for debugging
         console.debug('[Filter] Category:', categoryText, 'Keywords:', keywords);
 
+        // Unknown categories are split into words so any word can match
+        const words = matchedKey ? keywords : keywords.flatMap(k => k.split(' ')).filter(w => w.length > 1 && !['intern', 'internship', 'ojt'].includes(w));
+
         jobsToRender = jobsToRender.filter(job => {
-            const qualification = normalizeForMatch(job.qualification || '');
-            const title = normalizeForMatch(job.title || '');
-            // Find if any keyword is included in the qualification (respecting word boundaries)
-            const matchedQualification = keywords.some(key => matchesKeyword(qualification, key));
-            const matchedTitle = keywords.some(key => matchesKeyword(title, key));
-
-            if (matchedQualification) return true;
-            // Fallback to title if qualification didn't match
-            if (matchedTitle) return true;
-
-            return false;
+            const haystack = normalizeForMatch([job.title, job.position, job.qualification, job.company].join(' '));
+            return words.some(key => matchesKeyword(haystack, key));
         });
-
         console.debug('[Filter] Matched jobs count:', jobsToRender.length);
         if (jobsToRender.length === 0) {
             // Provide helpful debugging information (sample qualifications from all jobs)
