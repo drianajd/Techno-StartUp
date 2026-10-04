@@ -119,7 +119,7 @@ async function loadSuggestedInternships() {
 
         suggestedJobs.forEach((job) => {
             const companyDomain = job.company.split(' ')[0].toLowerCase();
-            const logoUrl = `https://logo.clearbit.com/${companyDomain}.com`;
+            const logoUrl = job.logo || `https://logo.clearbit.com/${companyDomain}.com`;
 
             const card = document.createElement('div');
             card.className = 'job-card'; 
@@ -483,7 +483,7 @@ function renderJobs() {
 
     jobsToRender.forEach(job => {
         const companyDomain = job.company.split(' ')[0].toLowerCase();
-        const logoUrl = `https://logo.clearbit.com/${companyDomain}.com`;
+        const logoUrl = job.logo || `https://logo.clearbit.com/${companyDomain}.com`;
 
         const item = document.createElement('div');
         item.className = 'job-item';

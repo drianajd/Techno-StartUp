@@ -6,6 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import re
+import sys
 # Search config
 SEARCH_KEYWORD = "internship"
 LOCATION = "Philippines"
@@ -41,7 +42,22 @@ VALID_ROLE_KEYWORDS = [
     "mechanical", "electrical", "civil", "industrial", "electronics",
     "mechatronics", "chemical", "architect", "architecture",
     "cad", "autocad", "drafter", "drafting", "surveying", "building",
-    "engineering"
+    "engineering",
+
+    # ---------------- Extra IT / CS ----------------
+    "information technology", "computer science", "computer engineering",
+    "software engineer", "software developer", "web developer",
+    "mobile developer", "android", "ios", "java", "python", "javascript",
+    "php", "react", "node", "laravel", ".net", "c#", "wordpress",
+    "data analyst", "data science", "data scientist", "data engineer",
+    "business intelligence", "machine learning", "ai", "artificial intelligence",
+    "automation", "robotics", "embedded", "iot", "game developer", "game",
+    "it support", "help desk", "helpdesk", "service desk", "it operations",
+    "infrastructure", "sysadmin", "system administrator", "network engineer",
+    "cybersecurity", "information security", "penetration", "ui/ux",
+    "ux designer", "ui designer", "product designer", "product", "scrum",
+    "business analyst", "systems analyst", "erp", "sap", "crm", "seo",
+    "digital marketing", "e-commerce", "ecommerce", "technical writer",
 
     # ---------------- Healthcare (common PH internships) ----------------
     "nursing", "medical", "health", "pharmacy", "pharmacist",
@@ -106,12 +122,27 @@ def extract_position(title: str) -> str:
 
     # Capitalize properly and fix common acronyms
     result = best.title()
-    result = result.replace(" It ", " IT ").replace(" Hr ", " HR ").replace(" Qa ", " QA ")
-    result = result.replace(" Csr ", " CSR ").replace(" Pr ", " PR ").replace(" Ui ", " UI ").replace(" Ux ", " UX ")
+    for acr in ("IT", "HR", "QA", "QC", "CSR", "PR", "UI", "UX", "AI", "SEO", "ERP", "SAP", "CRM", "IOS", "IOT", "PHP", "BPO", "CAD", "NGO"):
+        result = re.sub(r'\b' + acr.title() + r'\b', "iOS" if acr == "IOS" else acr, result)
 
     return result + " Internship"
 
 jobs = []
+
+LOGO_JS = """el => {
+  for (const i of el.querySelectorAll('img')) {
+    const s = i.currentSrc || i.src || i.dataset.src || i.dataset.delayedUrl || '';
+    if (/^https?:/.test(s) && !/sprite|placeholder|spacer|avatar/i.test(s)) return s;
+  }
+  return '';
+}"""
+
+
+async def card_logo(card):
+    try:
+        return await card.evaluate(LOGO_JS) or ""
+    except Exception:
+        return ""
 
 # ---------------- JobStreet ----------------
 async def scrape_jobstreet(page):
@@ -173,7 +204,8 @@ async def scrape_jobstreet(page):
                     "position": position,
                     "company": company.strip() if company else "",
                     "location": location.strip() if location else "",
-                    "link": link
+                    "link": link,
+                    "logo_url": await card_logo(card)
                 })
 
 
@@ -243,7 +275,8 @@ async def scrape_indeed(page):
                     "position": position,
                     "company": company.strip() if company else "",
                     "location": location.strip() if location else "",
-                    "link": link
+                    "link": link,
+                    "logo_url": await card_logo(card)
                 })
 
 
@@ -259,6 +292,7 @@ def scrape_linkedin():
     soup = BeautifulSoup(response.text, "html.parser")
 
     linkedin_jobs = []
+
     for el in soup.select(".base-card"):
         title = el.select_one(".base-search-card__title")
         company = el.select_one(".base-search-card__subtitle")
@@ -271,7 +305,8 @@ def scrape_linkedin():
                 "position": position,
                 "company": company.text.strip() if company else "",
                 "location": "",
-                "link": link['href'] if link else ""
+                "link": link['href'] if link else "",
+                "logo_url": (lambda i: (i.get("data-delayed-url") or i.get("src") or "") if i else "")(el.select_one("img"))
             })
     return linkedin_jobs
 
@@ -298,8 +333,58 @@ async def scrape_kalibrr(page):
                 "position": position,
                 "company": company or "",
                 "location": location or "",
-                "link": link
+                "link": link,
+                "logo_url": await card_logo(card)
             })
+
+
+# ---------------- Glassdoor ----------------
+GLASSDOOR_URL = "https://www.glassdoor.com/Job/philippines-internship-jobs-SRCH_IL.0,11_IN204_KO12,22.htm"
+
+
+async def scrape_glassdoor(playwright):
+    # Glassdoor blocks bundled headless Chromium (Cloudflare 403); real Chrome in new-headless mode is used instead.
+    browser = None
+    try:
+        browser = await playwright.chromium.launch(
+            channel="chrome",
+            headless=False,
+            args=["--window-position=-32000,-32000", "--disable-blink-features=AutomationControlled"],
+        )
+        page = await (await browser.new_context()).new_page()
+        resp = await page.goto(GLASSDOOR_URL, wait_until="domcontentloaded", timeout=60000)
+        try:
+            await page.wait_for_selector("li[data-test='jobListing']", timeout=15000)
+        except Exception:
+            print(f"Glassdoor: no listings (status {resp.status if resp else '?'}, title {await page.title()!r})", file=sys.stderr)
+            return
+
+        for card in await page.query_selector_all("li[data-test='jobListing']"):
+            async def text(sel):
+                el = await card.query_selector(sel)
+                return (await el.inner_text()).strip() if el else ""
+
+            title_el = await card.query_selector("a[data-test='job-title']")
+            if not title_el:
+                continue
+            title = (await title_el.inner_text()).strip()
+            link = await title_el.get_attribute("href")
+            if not title or not link:
+                continue
+            jobs.append({
+                "site": "Glassdoor",
+                "title": title,
+                "position": extract_position(title),
+                "company": await text("[class*='EmployerProfile_compactEmployerName']"),
+                "location": await text("[data-test='emp-location']"),
+                "link": link,
+                "logo_url": await card_logo(card),
+            })
+    except Exception as e:
+        print(f"Glassdoor scrape failed: {e}", file=sys.stderr)
+    finally:
+        if browser:
+            await browser.close()
 
 
 # ---------------- Main ----------------
@@ -320,6 +405,7 @@ async def scrape_all_jobs():
         await scrape_kalibrr(page)
 
         await browser.close()
+        await scrape_glassdoor(p)
 
     # Remove duplicates based on link
     unique_jobs = list({job['link']: job for job in jobs}.values())
@@ -330,3 +416,5 @@ if __name__ == "__main__":
     # Output JSON for Node.js
     results = asyncio.run(scrape_all_jobs())
     print(json.dumps(results))
+
+

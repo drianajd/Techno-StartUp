@@ -53,18 +53,50 @@
       }
     }
 
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      }[character]));
+    }
+
+    function safeImageUrl(value) {
+      try {
+        const url = new URL(value || 'res/default-logo.png', window.location.href);
+        return ['http:', 'https:'].includes(url.protocol) ? url.href : 'res/default-logo.png';
+      } catch {
+        return 'res/default-logo.png';
+      }
+    }
+
     function renderJobDetails(job, isFavorited) {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('jobCard').style.display = 'block';
 
-      const facilitiesList = job.facilities ? job.facilities.map(f => `<li>${f}</li>`).join('') : '<li>No facilities listed</li>';
+      const facilitiesList = Array.isArray(job.facilities) && job.facilities.length
+        ? job.facilities.map(f => `<li>${escapeHtml(f)}</li>`).join('')
+        : '<li>No facilities listed</li>';
+      const requirementsList = job.requirements
+        ? String(job.requirements).split('\n').map(req => `<li>${escapeHtml(req.trim())}</li>`).join('')
+        : '<li>Requirements not specified</li>';
+      const applicationStatus = ['accepted', 'rejected', 'pending'].includes(job.applicationStatus)
+        ? job.applicationStatus
+        : 'pending';
+      const statusColor = {
+        accepted: '#27ae60',
+        rejected: '#e74c3c',
+        pending: '#f39c12'
+      }[applicationStatus];
       
       document.getElementById('jobCard').innerHTML = `
         <div class="job-header">
-          <img src="${job.logo_url || 'res/default-logo.png'}" alt="${job.company_name} Logo" class="company-logo" onerror="this.src='res/default-logo.png'">
+          <img src="${safeImageUrl(job.logo_url)}" alt="${escapeHtml(job.company_name)} Logo" class="company-logo" onerror="this.src='res/default-logo.png'">
           <div class="job-info">
-            <h2>${job.title}</h2>
-            <p>${job.company_name} • ${job.location} • ${new Date(job.created_at).toLocaleDateString()}</p>
+            <h2>${escapeHtml(job.title)}</h2>
+            <p>${escapeHtml(job.company_name)} • ${escapeHtml(job.location)} • ${escapeHtml(new Date(job.created_at).toLocaleDateString())}</p>
           </div>
         </div>
         <div class="job-section">
@@ -73,15 +105,15 @@
         </div>
         <div class="job-section">
           <h3>Description</h3>
-          <p>${job.description || 'Job description not available.'}</p>
+          <p>${escapeHtml(job.description || 'Job description not available.')}</p>
         </div>
         <div class="job-section">
           <h3>Requirements</h3>
-          <ul>${job.requirements ? job.requirements.split('\n').map(req => `<li>${req.trim()}</li>`).join('') : '<li>Requirements not specified</li>'}</ul>
+          <ul>${requirementsList}</ul>
         </div>
         <div class="job-section">
           <h3>Location</h3>
-          <p>${job.location}</p>
+          <p>${escapeHtml(job.location)}</p>
           <div class="map-placeholder">
             <div style="text-align: center; padding: 20px; color: #666;">🗺️ Map coming soon</div>
           </div>
@@ -90,11 +122,11 @@
           <h3>Information</h3>
           <div class="info-item">
             <h4>Position</h4>
-            <p>${job.title}</p>
+            <p>${escapeHtml(job.title)}</p>
           </div>
           <div class="info-item">
             <h4>Company</h4>
-            <p>${job.company_name}</p>
+            <p>${escapeHtml(job.company_name)}</p>
           </div>
           <div class="info-item">
             <h4>Job Type</h4>
@@ -102,13 +134,13 @@
           </div>
           <div class="info-item">
             <h4>Specialization</h4>
-            <p>${job.category || 'General'}</p>
+            <p>${escapeHtml(job.category || 'General')}</p>
           </div>
           ${job.applied ? `
           <div class="info-item">
             <h4>Status</h4>
-            <p style="color: ${job.applicationStatus === 'accepted' ? '#27ae60' : job.applicationStatus === 'rejected' ? '#e74c3c' : '#f39c12'}">
-              ${job.applicationStatus?.toUpperCase() || 'PENDING'}
+            <p style="color: ${statusColor}">
+              ${escapeHtml(applicationStatus.toUpperCase())}
             </p>
           </div>` : ''}
         </div>

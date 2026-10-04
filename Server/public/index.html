@@ -103,7 +103,7 @@ async function loadJobs() {
       filtered.forEach(job => {
         // fetch logo using Clearbit
         const companyDomain = job.company.split(' ')[0].toLowerCase();
-        const logoUrl = `https://logo.clearbit.com/${companyDomain}.com`;
+        const logoUrl = job.logo || `https://logo.clearbit.com/${companyDomain}.com`;
 
         const item = document.createElement('a');
         item.href = job.link;

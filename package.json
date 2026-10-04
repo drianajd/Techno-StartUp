@@ -5,6 +5,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "start": "node Server/server.js",
+    "dev": "node --watch-path=Server --watch-path=Route Server/server.js",
+    "check": "node --check Server/server.js && node --check Server/mailer.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

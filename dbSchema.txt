@@ -47,7 +47,8 @@ CREATE TABLE IF NOT EXISTS internships (
     position VARCHAR(255) NULL,     
     location VARCHAR(255) NULL,    
     link TEXT NULL,                
-    site VARCHAR(255) NULL,      
+    site VARCHAR(255) NULL,
+    logo VARCHAR(500) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

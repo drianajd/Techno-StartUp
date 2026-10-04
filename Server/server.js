@@ -10,7 +10,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
 import cron from "node-cron";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import { findMatchingUsersAndSendEmails } from "./mailer.js";
 import { saveJob, checkDuplicate } from "./dbConnection/saveScrapedData.js";
 
@@ -19,14 +19,54 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
+const isProduction = process.env.NODE_ENV === "production";
+const sessionSecret = process.env.SESSION_SECRET?.trim();
+if (!sessionSecret || sessionSecret.length < 32) {
+  throw new Error("SESSION_SECRET must be set to a random value of at least 32 characters.");
+}
+
+function getBooleanEnv(name, fallback) {
+  const value = process.env[name]?.trim().toLowerCase();
+  if (value === undefined || value === "") return fallback;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  throw new Error(`${name} must be set to "true" or "false".`);
+}
+
+const trustProxy = getBooleanEnv("TRUST_PROXY", false);
+const sessionCookieSecure = getBooleanEnv("SESSION_COOKIE_SECURE", isProduction);
+const port = Number(process.env.PORT ?? 5500);
+if (!Number.isInteger(port) || port < 1 || port > 65535) {
+  throw new Error("PORT must be an integer between 1 and 65535.");
+}
+const host = process.env.HOST?.trim() || "0.0.0.0";
+
+if (trustProxy) {
+  app.set("trust proxy", 1);
+}
+
 // --------------------- Middleware ---------------------
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5500'],
+  origin: process.env.ALLOWED_ORIGIN
+    ? process.env.ALLOWED_ORIGIN.split(",").map(origin => origin.trim())
+    : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5500'],
   credentials: true
 }));
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.get("/", (req, res) => {
+  res.redirect("/login.html");
+});
 app.use(express.static(path.join(__dirname, "public")));
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  if (isProduction) {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+  next();
+});
 
 // Debug middleware
 app.use((req, res, next) => {
@@ -66,13 +106,13 @@ function initSession() {
 
   app.use(session({
     key: "session_cookie_name",
-    secret: process.env.SESSION_SECRET || "change_this_secret",
+    secret: sessionSecret,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false,
+      secure: sessionCookieSecure,
       maxAge: 1000 * 60 * 60 * 24,
       sameSite: 'lax'
     }
@@ -81,12 +121,18 @@ function initSession() {
 
 export async function runScraper() {
   const scriptPath = path.join(__dirname, "../Route/scraper.py");
-  const pythonCmd = "py -3.11";
+  const pythonExecutable = process.env.PYTHON_EXECUTABLE?.trim()
+    || (process.platform === "win32" ? "py" : "python3");
+  const pythonArgs = process.env.PYTHON_EXECUTABLE?.trim()
+    ? [scriptPath]
+    : process.platform === "win32"
+      ? ["-3.11", scriptPath]
+      : [scriptPath];
 
   console.log(`Running scraper...`);
 
   return new Promise((resolve, reject) => {
-    exec(`${pythonCmd} "${scriptPath}"`, { maxBuffer: 1024 * 1024 * 10 }, async (error, stdout, stderr) => {
+    execFile(pythonExecutable, pythonArgs, { maxBuffer: 1024 * 1024 * 10 }, async (error, stdout, stderr) => {
       if (error) {
         console.error("Scraper error:", error);
         return reject(error);
@@ -154,18 +200,21 @@ app.get("/api/test", (req, res) => {
   res.json({ message: 'Server is running!', timestamp: new Date().toISOString() });
 });
 
-app.get("/test-email", async (req, res) => {
+app.get("/api/health", async (req, res) => {
   try {
-    await findMatchingUsersAndSendEmails();
-    res.send("Email sent! Check your inbox.");
+    await pool.query("SELECT 1");
+    res.json({ status: "ok" });
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Email sending failed.");
+    console.error("Health check database error:", err);
+    res.status(503).json({ status: "unavailable" });
   }
 });
 
 // Trigger JobSpy scraping manually
-app.get("/api/jobs", async (req, res) => {
+app.post("/api/jobs", async (req, res) => {
+  if (!process.env.INTERNAL_JOB_TOKEN || req.get("X-Internal-Job-Token") !== process.env.INTERNAL_JOB_TOKEN) {
+    return res.status(404).json({ error: "Not found" });
+  }
   try {
     const inserted = await runScraper();
     res.json({ success: true, inserted });
@@ -177,7 +226,8 @@ app.get("/api/jobs", async (req, res) => {
 app.get("/api/jobs/all", async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT id, company, title, link, location, site
+      `SELECT id, company, COALESCE(NULLIF(title, ''), position) AS title,
+              position, link, location, site, logo
        FROM internships
        ORDER BY id DESC
        LIMIT 100`
@@ -188,11 +238,6 @@ app.get("/api/jobs/all", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch jobs" });
   }
 });
-// Serve static pages
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
 app.get("/dashboard.html", (req, res) => {
   if (!req.session.userId) return res.redirect("/");
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
@@ -372,7 +417,7 @@ app.get("/api/bookmarks/jobs", async (req, res) => {
 
     // Fetch all bookmarked jobs with their details
     const [bookmarkedJobs] = await pool.query(
-      `SELECT i.id, i.company, i.position AS title, i.link, i.location, i.site, b.saved_at
+      `SELECT i.id, i.company, i.position AS title, i.link, i.location, i.site, i.logo, b.saved_at
        FROM bookmarks b
        JOIN internships i ON b.internship_id = i.id
        WHERE b.user_id = ?
@@ -593,7 +638,9 @@ app.get("/api/jobs/suggested", async (req, res) => {
 
     if (!userId) {
       // Case 1: User is not logged in - return 10 random jobs
-      query = `SELECT id, title, company, position, location, link, site FROM internships ORDER BY RAND() LIMIT 10`;
+      query = `SELECT id, COALESCE(NULLIF(title, ''), position) AS title,
+                      company, position, location, link, site, logo
+               FROM internships ORDER BY RAND() LIMIT 10`;
       params = [];
     } else {
       // 1. Get user's preferred position from user_preferences
@@ -606,16 +653,19 @@ app.get("/api/jobs/suggested", async (req, res) => {
 
       if (!preferredPosition || preferredPosition.trim() === '') {
         // Case 2: Logged in but no preference set - return 10 most recent jobs
-        query = `SELECT id, title, company, position, location, link, site FROM internships ORDER BY created_at DESC LIMIT 10`;
+        query = `SELECT id, COALESCE(NULLIF(title, ''), position) AS title,
+                        company, position, location, link, site, logo
+                 FROM internships ORDER BY created_at DESC LIMIT 10`;
         params = [];
       } else {
         // Case 3: Logged in with a preference - search for matching jobs
         const searchPosition = `%${preferredPosition.trim()}%`; 
         
         query = `
-          SELECT id, title, company, position, location, link, site 
+          SELECT id, COALESCE(NULLIF(title, ''), position) AS title,
+                 company, position, location, link, site, logo
           FROM internships 
-          WHERE COALESCE(position, title) LIKE ? 
+          WHERE COALESCE(NULLIF(position, ''), NULLIF(title, '')) LIKE ?
           ORDER BY created_at DESC 
           LIMIT 10
         `;
@@ -644,7 +694,7 @@ app.use((req, res) => {
 });
 
 // --------------------- Cron Jobs ---------------------
-cron.schedule("*/30 * * * *", async () => {
+cron.schedule("*/10 * * * *", async () => {
   console.log("Auto scraping jobs triggered...");
   try {
     const output = await runScraper();
@@ -654,7 +704,7 @@ cron.schedule("*/30 * * * *", async () => {
   }
 });
 
-cron.schedule("*/30 * * * *", async () => {
+cron.schedule("*/10 * * * *", async () => {
   console.log("Auto-email sender triggered...");
   try {
     await findMatchingUsersAndSendEmails();
@@ -664,9 +714,10 @@ cron.schedule("*/30 * * * *", async () => {
   }
 });
 
-  const PORT = process.env.PORT || 5500;
-  const server = app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  const server = app.listen(port, host, () => {
+    console.log(`Server listening on ${host}:${port}`);
+    console.log(`Local URL: http://localhost:${port}`);
+    console.log("Radmin VPN users should connect to this machine's Radmin VPN IP.");
     runScraper().catch(err => {
       console.error("Initial scraper run failed:", err);
     });

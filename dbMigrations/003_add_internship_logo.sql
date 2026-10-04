@@ -1,0 +1,1 @@
+ALTER TABLE internships ADD COLUMN logo VARCHAR(500) NULL;

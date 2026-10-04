@@ -24,17 +24,24 @@ export async function saveJob(job) {
   const normalizedLink = normalizeLink(job.link);
   try {
     await pool.query(
-      `INSERT IGNORE INTO internships (title, company, position, location, link, site)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT IGNORE INTO internships (title, company, position, location,       link, site, logo)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         job.title || "",
         job.company || "",
         job.position || "",
         job.location || "",
         normalizedLink,
-        job.site || ""
-      ]
-    );
+              job.site || "",
+              job.logo_url || null
+            ]
+          );
+          if (job.logo_url) {
+            await pool.query(
+              "UPDATE internships SET logo = ? WHERE link = ? AND (logo IS NULL OR logo = '')",
+              [job.logo_url, normalizedLink]
+            );
+          }
   } catch (err) {
     console.error("saveJob error:", err);
     throw err;
