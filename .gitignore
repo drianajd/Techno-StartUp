@@ -2,3 +2,5 @@
 .env.*
 !.env.example
 node_modules/
+run-log.txt
+run-err.txt
