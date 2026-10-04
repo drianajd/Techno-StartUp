@@ -86,7 +86,7 @@
                 }
 
                 const data = await res.json();
-                const jobs = data.jobs || [];
+                const jobs = (data.jobs || []).filter(isUsableJobLink);
 
                 if (jobs.length === 0) {
                     list.innerHTML = '';
@@ -122,7 +122,7 @@
             const h3 = document.createElement('h3');
             h3.textContent = job.title || job.position || 'Untitled';
             const p = document.createElement('p');
-            p.textContent = `${job.company || 'Unknown'} • ${job.site || ''}`;
+            p.textContent = `${job.company || 'Unknown'} • ${job.site || ''}${job.date_posted ? ' • ' + formatPostedDate(job.date_posted) : ''}`;
             div.appendChild(h3);
             div.appendChild(p);
             a.appendChild(div);
@@ -193,7 +193,7 @@
                 .then(r => r.json())
                 .then(data => {
                     const jobs = data.jobs || [];
-                    const matched = jobs.filter(j => local.includes(String(j.id)));
+                    const matched = jobs.filter(j => local.includes(String(j.id)) && isUsableJobLink(j));
                     if (matched.length === 0) {
                         emptyState.style.display = 'block';
                         return;

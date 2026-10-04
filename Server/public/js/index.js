@@ -14,6 +14,39 @@ const avatarColors = [
   "#6A88FF", 
   "#3EC6E0"  
 ];
+
+function jobTimestamp(job) {
+    const t = Date.parse(job && job.date_posted);
+    return Number.isNaN(t) ? 0 : t;
+}
+
+function formatPostedDate(value) {
+    const t = Date.parse(value);
+    if (Number.isNaN(t)) return '';
+    const mins = Math.floor((Date.now() - t) / 60000);
+    if (mins < 60) return 'Posted just now';
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `Posted ${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `Posted ${days}d ago`;
+    return 'Posted ' + new Date(t).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function isUsableJobLink(job) {
+    try {
+        const url = new URL(job.link);
+        if (!['http:', 'https:'].includes(url.protocol)) return false;
+
+        return !(
+            (job.site || '').toLowerCase() === 'indeed' &&
+            /\/viewjob\/?$/i.test(url.pathname) &&
+            !url.searchParams.has('jk')
+        );
+    } catch {
+        return false;
+    }
+}
+
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
     initializeApp();
@@ -105,7 +138,7 @@ async function loadSuggestedInternships() {
         }
         
         const data = await res.json();
-        const suggestedJobs = data.jobs || [];
+        const suggestedJobs = (data.jobs || []).filter(isUsableJobLink);
 
         container.innerHTML = '';
         container.classList.add('jobs-scroll');
@@ -141,6 +174,7 @@ async function loadSuggestedInternships() {
                     <div class="job-tags">
                         ${tagsHtml}
                         <span class="job-tag site-tag">${escapeHtml(job.site || 'Unknown')}</span>
+                        ${job.date_posted ? `<span class="job-tag">${escapeHtml(formatPostedDate(job.date_posted))}</span>` : ''}
                     </div>
                 </a>
             `;
@@ -428,10 +462,13 @@ function renderJobs() {
 
     // Filter by search term first
     let jobsToRender = allJobs.filter(job =>
-        (job.title || '').toLowerCase().includes(searchTerm) ||
-        (job.company || '').toLowerCase().includes(searchTerm)
+        isUsableJobLink(job) &&
+        ((job.title || '').toLowerCase().includes(searchTerm) ||
+        (job.company || '').toLowerCase().includes(searchTerm))
     );
 
+
+    jobsToRender.sort((a, b) => jobTimestamp(b) - jobTimestamp(a));
 
     // If a category filter is active, match against the qualification field only
     if (activeCategoryFilter) {
@@ -496,7 +533,7 @@ function renderJobs() {
                         <i class="bi bi-building"></i> ${escapeHtml(job.company)}
                     </p>
                     <p class="site">
-                        <i class="bi bi-link-45deg"></i> ${escapeHtml(job.site)}
+                        <i class="bi bi-link-45deg"></i> ${escapeHtml(job.site)}${job.date_posted ? ' • ' + escapeHtml(formatPostedDate(job.date_posted)) : ''}
                     </p>
                 </div>
             </a>

@@ -7,3 +7,5 @@ run-err.txt
 
 __pycache__/
 *.pyc
+dbMigrations/
+.txt
