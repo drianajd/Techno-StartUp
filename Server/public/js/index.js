@@ -14,39 +14,6 @@ const avatarColors = [
   "#6A88FF", 
   "#3EC6E0"  
 ];
-
-function jobTimestamp(job) {
-    const t = Date.parse(job && job.date_posted);
-    return Number.isNaN(t) ? 0 : t;
-}
-
-function formatPostedDate(value) {
-    const t = Date.parse(value);
-    if (Number.isNaN(t)) return '';
-    const mins = Math.floor((Date.now() - t) / 60000);
-    if (mins < 60) return 'Posted just now';
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `Posted ${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 30) return `Posted ${days}d ago`;
-    return 'Posted ' + new Date(t).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-function isUsableJobLink(job) {
-    try {
-        const url = new URL(job.link);
-        if (!['http:', 'https:'].includes(url.protocol)) return false;
-
-        return !(
-            (job.site || '').toLowerCase() === 'indeed' &&
-            /\/viewjob\/?$/i.test(url.pathname) &&
-            !url.searchParams.has('jk')
-        );
-    } catch {
-        return false;
-    }
-}
-
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
     initializeApp();
@@ -138,7 +105,7 @@ async function loadSuggestedInternships() {
         }
         
         const data = await res.json();
-        const suggestedJobs = (data.jobs || []).filter(isUsableJobLink);
+        const suggestedJobs = data.jobs || [];
 
         container.innerHTML = '';
         container.classList.add('jobs-scroll');
@@ -174,7 +141,6 @@ async function loadSuggestedInternships() {
                     <div class="job-tags">
                         ${tagsHtml}
                         <span class="job-tag site-tag">${escapeHtml(job.site || 'Unknown')}</span>
-                        ${job.date_posted ? `<span class="job-tag">${escapeHtml(formatPostedDate(job.date_posted))}</span>` : ''}
                     </div>
                 </a>
             `;
@@ -202,29 +168,22 @@ let activeCategoryFilter = null; // currently selected category filter
 // Map categories to qualification keywords for more robust matching
 const categoryKeywordsMap = {
     'IT intern': [
-        'it', 'information technology', 'computer', 'software', 'program', 'coding', 'system', 'network',
-        'tech', 'data', 'cyber', 'security', 'cloud', 'devops', 'web', 'mobile', 'app', 'database', 'qa',
-        'quality assurance', 'tester', 'support', 'help desk', 'infrastructure', 'ai', 'machine learning',
-        'automation', 'ui', 'ux', 'full stack', 'frontend', 'backend', 'digital', 'developer', 'engineer'
+        'computer science', 'computer engineering', 'information technology', 'informatics', 'software', 'programming', 'coding', 'systems'
     ],
     'Marketing': [
-        'marketing', 'communication', 'advertis', 'brand', 'social media', 'content', 'seo', 'digital',
-        'copywrit', 'creative', 'media', 'public relations', 'pr', 'sales', 'graphic', 'video', 'campaign'
+        'marketing', 'communications', 'advertising', 'brand'
     ],
     'HR internship': [
-        'hr', 'human resource', 'people', 'talent', 'recruit', 'payroll', 'hris', 'employee', 'admin', 'training'
+        'human resource', 'human resources', 'hr', 'people'
     ],
     'Business Internship': [
-        'business', 'management', 'commerce', 'financ', 'account', 'entrepreneur', 'operations', 'audit',
-        'analyst', 'sales', 'procurement', 'purchasing', 'sourcing', 'logistics', 'supply chain', 'project',
-        'customer', 'assistant', 'admin', 'coordinator', 'executive', 'bookkeep', 'research'
+        'business', 'management', 'commerce', 'finance', 'accounting', 'entrepreneurship'
     ],
     'Developer Internship': [
-        'develop', 'software', 'program', 'engineer', 'coder', 'coding', 'full stack', 'frontend', 'backend',
-        'web', 'mobile', 'app', 'java', 'python', 'javascript', 'php', 'react', 'node', 'laravel', '.net',
-        'android', 'ios', 'devops', 'qa', 'tester', 'wordpress', 'game'
+        'developer', 'software engineer', 'software', 'programmer', 'development'
     ]
 };
+
 function normalizeForMatch(s) {
     return (s || '').toLowerCase().replace(/[\'\"\,\(\)\.\-\/]/g, ' ');
 }
@@ -237,10 +196,20 @@ function matchesKeyword(text, keyword) {
     const q = (text || '').toLowerCase();
     const k = (keyword || '').toLowerCase().trim();
     if (!k) return false;
-    // Keyword must start at a word boundary ("develop" matches "developer"); short keywords must match whole words
-    const start = '(^|[^a-z0-9])' + escapeRegExp(k);
-    return new RegExp(k.length > 3 ? start : start + '([^a-z0-9]|$)', 'i').test(q);
+    // If keyword is multi-word, use simple includes
+    if (k.includes(' ')) {
+        return q.includes(k);
+    }
+    // Use word boundary regex for single-word keyword to prevent false positives
+    try {
+        const regex = new RegExp('\\b' + escapeRegExp(k) + '\\b', 'i');
+        return regex.test(q);
+    } catch (err) {
+        // Fallback
+        return q.includes(k);
+    }
 }
+
 // Load jobs from API
 async function loadJobs() {
     const container = document.getElementById('jobContainer');
@@ -455,20 +424,17 @@ function initializeFilterTags() {
 function renderJobs() {
     const container = document.getElementById('jobContainer');
     const updateTime = document.getElementById('updateTime');
-    const searchTerm = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
 
     if (!container) return;
     container.innerHTML = '';
 
     // Filter by search term first
     let jobsToRender = allJobs.filter(job =>
-        isUsableJobLink(job) &&
-        ((job.title || '').toLowerCase().includes(searchTerm) ||
-        (job.company || '').toLowerCase().includes(searchTerm))
+        (job.title || '').toLowerCase().includes(searchTerm) ||
+        (job.company || '').toLowerCase().includes(searchTerm)
     );
 
-
-    jobsToRender.sort((a, b) => jobTimestamp(b) - jobTimestamp(a));
 
     // If a category filter is active, match against the qualification field only
     if (activeCategoryFilter) {
@@ -481,13 +447,20 @@ function renderJobs() {
         // Logging for debugging
         console.debug('[Filter] Category:', categoryText, 'Keywords:', keywords);
 
-        // Unknown categories are split into words so any word can match
-        const words = matchedKey ? keywords : keywords.flatMap(k => k.split(' ')).filter(w => w.length > 1 && !['intern', 'internship', 'ojt'].includes(w));
-
         jobsToRender = jobsToRender.filter(job => {
-            const haystack = normalizeForMatch([job.title, job.position, job.qualification, job.company].join(' '));
-            return words.some(key => matchesKeyword(haystack, key));
+            const qualification = normalizeForMatch(job.qualification || '');
+            const title = normalizeForMatch(job.title || '');
+            // Find if any keyword is included in the qualification (respecting word boundaries)
+            const matchedQualification = keywords.some(key => matchesKeyword(qualification, key));
+            const matchedTitle = keywords.some(key => matchesKeyword(title, key));
+
+            if (matchedQualification) return true;
+            // Fallback to title if qualification didn't match
+            if (matchedTitle) return true;
+
+            return false;
         });
+
         console.debug('[Filter] Matched jobs count:', jobsToRender.length);
         if (jobsToRender.length === 0) {
             // Provide helpful debugging information (sample qualifications from all jobs)
@@ -533,7 +506,7 @@ function renderJobs() {
                         <i class="bi bi-building"></i> ${escapeHtml(job.company)}
                     </p>
                     <p class="site">
-                        <i class="bi bi-link-45deg"></i> ${escapeHtml(job.site)}${job.date_posted ? ' • ' + escapeHtml(formatPostedDate(job.date_posted)) : ''}
+                        <i class="bi bi-link-45deg"></i> ${escapeHtml(job.site)}
                     </p>
                 </div>
             </a>

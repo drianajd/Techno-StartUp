@@ -1,0 +1,43 @@
+==========================================
+Techno-StartUp
+==========================================
+
+Stopping any previous instance...
+
+Starting WampServer...
+Starting Radmin VPN...
+
+Waiting for WampServer MySQL on port 3306...
+Starting the server. Keep this window open while using the app.
+On this PC: http://localhost:5500
+Over Radmin VPN: http://26.205.99.251:5500
+
+
+> techno-startup@1.0.0 start
+> node Server/server.js
+
+[dotenv@17.2.3] injecting env (11) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+Server startup begin...
+Creating pool...
+MySQL connection successful
+Pool created
+Initializing session...
+Session initialized
+Server listening on 0.0.0.0:5500
+Local URL: http://localhost:5500
+Radmin VPN users should connect to this machine's Radmin VPN IP.
+Running scraper...
+Server error: Error: listen EADDRINUSE: address already in use 0.0.0.0:5500
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 5500
+}
+Total jobs scraped: 106
+Inserted 1 new jobs into the database.

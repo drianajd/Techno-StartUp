@@ -4,7 +4,7 @@ import json
 from playwright.async_api import async_playwright
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
+from datetime import datetime
 import re
 import sys
 # Search config
@@ -144,53 +144,8 @@ async def card_logo(card):
     except Exception:
         return ""
 
-DATE_JS = """el => {
-    const t = el.querySelector('time[datetime]');
-    if (t) return t.getAttribute('datetime');
-    const d = el.querySelector("[data-automation='jobListingDate'], [data-testid='myJobsStateDate'], span.date, [data-test='job-age'], [class*='listdate']");
-    if (d) return d.innerText;
-    const m = (el.innerText || '').match(/(just posted|today|posted\\s+\\d+\\+?\\s*\\w+\\s+ago|\\d+\\+?\\s*(?:h|d|w|mo|m|hours?|days?|weeks?|months?|minutes?)\\s*(?:ago)?\\b)/i);
-    return m ? m[0] : '';
-}"""
-
-
-def parse_posted_date(text):
-    """Convert ISO dates or relative text ('3d ago', 'Posted 2 weeks ago') to an ISO datetime string. Falls back to now."""
-    now = datetime.now()
-    text = (text or "").strip().lower()
-    if text:
-        iso = re.match(r"(\d{4})-(\d{2})-(\d{2})", text)
-        if iso:
-            try:
-                return datetime(int(iso.group(1)), int(iso.group(2)), int(iso.group(3))).strftime("%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                pass
-        if re.search(r"just posted|today|\bnow\b", text):
-            return now.strftime("%Y-%m-%d %H:%M:%S")
-        m = re.search(r"(\d+)\+?\s*(minutes?|mins?|hours?|hrs?|days?|weeks?|wks?|months?|mos?|h|d|w|m)\b", text)
-        if m:
-            n, unit = int(m.group(1)), m.group(2)
-            if unit.startswith(("min",)) or unit == "m":
-                delta = timedelta(minutes=n)
-            elif unit.startswith("h"):
-                delta = timedelta(hours=n)
-            elif unit.startswith("d"):
-                delta = timedelta(days=n)
-            elif unit.startswith("w"):
-                delta = timedelta(weeks=n)
-            else:
-                delta = timedelta(days=30 * n)
-            return (now - delta).strftime("%Y-%m-%d %H:%M:%S")
-    return now.strftime("%Y-%m-%d %H:%M:%S")
-
-
-async def card_date(card):
-    try:
-        return parse_posted_date(await card.evaluate(DATE_JS))
-    except Exception:
-        return parse_posted_date("")
-
-# ---------------- JobStreet ----------------async def scrape_jobstreet(page):
+# ---------------- JobStreet ----------------
+async def scrape_jobstreet(page):
     for p in range(1, MAX_PAGES + 1):
         url = f"https://ph.jobstreet.com/internship-jobs/in-Philippines"
         await page.goto(url, wait_until="domcontentloaded")
@@ -250,8 +205,7 @@ async def card_date(card):
                     "company": company.strip() if company else "",
                     "location": location.strip() if location else "",
                     "link": link,
-                    "logo_url": await card_logo(card),
-                    "date_posted": await card_date(card)
+                    "logo_url": await card_logo(card)
                 })
 
 
@@ -297,7 +251,7 @@ async def scrape_indeed(page):
                                   "span[data-testid='company-name']"]
         location_sel_candidates = ["div.companyLocation", "div.location", "span.location",
                                     "div.company > div", "div[data-testid='text-location']"]
-        link_sel_candidates = ["h2 a", "a.jcs-JobTitle", "a.tapItem"]
+        link_sel_candidates = ["h2 a", "a.jcs-JobTitle", "a.tapItem", "a"]
 
         for card in cards:
             title = await safe_get_text(card, title_sel_candidates)
@@ -322,8 +276,7 @@ async def scrape_indeed(page):
                     "company": company.strip() if company else "",
                     "location": location.strip() if location else "",
                     "link": link,
-                    "logo_url": await card_logo(card),
-                    "date_posted": await card_date(card)
+                    "logo_url": await card_logo(card)
                 })
 
 
@@ -353,8 +306,7 @@ def scrape_linkedin():
                 "company": company.text.strip() if company else "",
                 "location": "",
                 "link": link['href'] if link else "",
-                "logo_url": (lambda i: (i.get("data-delayed-url") or i.get("src") or "") if i else "")(el.select_one("img")),
-                "date_posted": parse_posted_date((el.select_one("time") or {}).get("datetime", "") if el.select_one("time") else "")
+                "logo_url": (lambda i: (i.get("data-delayed-url") or i.get("src") or "") if i else "")(el.select_one("img"))
             })
     return linkedin_jobs
 
@@ -382,8 +334,7 @@ async def scrape_kalibrr(page):
                 "company": company or "",
                 "location": location or "",
                 "link": link,
-                "logo_url": await card_logo(card),
-                "date_posted": await card_date(card)
+                "logo_url": await card_logo(card)
             })
 
 
@@ -428,7 +379,6 @@ async def scrape_glassdoor(playwright):
                 "location": await text("[data-test='emp-location']"),
                 "link": link,
                 "logo_url": await card_logo(card),
-                "date_posted": await card_date(card),
             })
     except Exception as e:
         print(f"Glassdoor scrape failed: {e}", file=sys.stderr)
@@ -466,4 +416,5 @@ if __name__ == "__main__":
     # Output JSON for Node.js
     results = asyncio.run(scrape_all_jobs())
     print(json.dumps(results))
+
 

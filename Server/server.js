@@ -158,9 +158,7 @@ export async function runScraper() {
             position: job.position || "", 
             company: job.company || "",
             location: job.location || "",  
-            link: job.link,
-            logo_url: job.logo_url || null,
-            date_posted: job.date_posted || null
+            link: job.link
           });
 
           inserted++;
@@ -229,10 +227,10 @@ app.get("/api/jobs/all", async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT id, company, COALESCE(NULLIF(title, ''), position) AS title,
-              position, link, location, site, logo, date_posted
+              position, link, location, site, logo
        FROM internships
-       ORDER BY COALESCE(date_posted, created_at) DESC, id DESC
-       LIMIT 1000`
+       ORDER BY id DESC
+       LIMIT 100`
     );
     res.json({ jobs: rows });
   } catch (err) {
@@ -419,7 +417,7 @@ app.get("/api/bookmarks/jobs", async (req, res) => {
 
     // Fetch all bookmarked jobs with their details
     const [bookmarkedJobs] = await pool.query(
-      `SELECT i.id, i.company, i.position AS title, i.link, i.location, i.site, i.logo, i.date_posted, b.saved_at
+      `SELECT i.id, i.company, i.position AS title, i.link, i.location, i.site, i.logo, b.saved_at
        FROM bookmarks b
        JOIN internships i ON b.internship_id = i.id
        WHERE b.user_id = ?
@@ -641,7 +639,7 @@ app.get("/api/jobs/suggested", async (req, res) => {
     if (!userId) {
       // Case 1: User is not logged in - return 10 random jobs
       query = `SELECT id, COALESCE(NULLIF(title, ''), position) AS title,
-                      company, position, location, link, site, logo, date_posted
+                      company, position, location, link, site, logo
                FROM internships ORDER BY RAND() LIMIT 10`;
       params = [];
     } else {
@@ -656,8 +654,8 @@ app.get("/api/jobs/suggested", async (req, res) => {
       if (!preferredPosition || preferredPosition.trim() === '') {
         // Case 2: Logged in but no preference set - return 10 most recent jobs
         query = `SELECT id, COALESCE(NULLIF(title, ''), position) AS title,
-                        company, position, location, link, site, logo, date_posted
-                 FROM internships ORDER BY COALESCE(date_posted, created_at) DESC LIMIT 10`;
+                        company, position, location, link, site, logo
+                 FROM internships ORDER BY created_at DESC LIMIT 10`;
         params = [];
       } else {
         // Case 3: Logged in with a preference - search for matching jobs
@@ -665,10 +663,10 @@ app.get("/api/jobs/suggested", async (req, res) => {
         
         query = `
           SELECT id, COALESCE(NULLIF(title, ''), position) AS title,
-                 company, position, location, link, site, logo, date_posted
+                 company, position, location, link, site, logo
           FROM internships 
           WHERE COALESCE(NULLIF(position, ''), NULLIF(title, '')) LIKE ?
-          ORDER BY COALESCE(date_posted, created_at) DESC 
+          ORDER BY created_at DESC 
           LIMIT 10
         `;
         params = [searchPosition];
